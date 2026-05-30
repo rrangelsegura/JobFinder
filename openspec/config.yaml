@@ -1,0 +1,33 @@
+project:
+  name: "Career Copilot & Job Search Orchestrator (SaaS)"
+  version: "0.1.0"
+  description: "Plataforma SaaS modular de acompañamiento automatizado para maximizar la probabilidad de éxito en la consecución de empleo mediante sistemas multi-agente."
+
+architecture:
+  type: "Dynamic Multi-Agent Mesh with State Persistence"
+  core_engine: "Dify API + Custom Orchestration Layer"
+  specification_standard: "OpenSpec V2"
+
+agent_roles_defined:
+  - id: "laboral_transition_coach"
+    description: "Agente enfocado en la orientación estratégica: elección de camino (empleo, emprendimiento, freelance, pensión), industria, empresa, rango salarial y rol."
+  - id: "job_search_coach"
+    description: "Agente enfocado en la ejecución táctica: planeación de networking, diseño de rutas de preparación (Candidate Journey) y cierre de procesos."
+  - id: "professional_recruiter_evaluator"
+    description: "Agente especialista en evaluación con criterio de reclutador: calificación de 'About Me' (Feedback), cálculo de Match Core (escala 0-10) entre perfil y Job Descriptions."
+
+system_capability_domains:
+  - domain: "data_ingestion_and_persistence"
+    description: "Captura multimodal de información (Job Descriptions, CV, Preferencias) desde PDFs, raspado de plataformas web y formularios manuales, con almacenamiento persistente aislado por usuario."
+  
+  - domain: "ats_and_external_integration"
+    description: "Capa de conexión externa para la aplicación automatizada a sistemas ATS disponibles y sincronización de eventos/tareas con servicios de terceros (Gmail, ClickUp)."
+
+  - domain: "multimodal_generation_engine"
+    description: "Generación de artefactos customizados en texto plano, PDF, PPT y estructura de scripts para video-presentación (CVs optimizadas, cartas de aplicación, perfiles de LinkedIn/GitHub/PeakU)."
+
+  - domain: "interactive_simulation_and_training"
+    description: "Módulo de entrenamiento adaptativo: simulación de entrevistas interactivas y diseño de planes de capacitación basados en las brechas técnicas detectadas contra las ofertas de empleo."
+
+  - domain: "analytics_and_pipeline_visualization"
+    description: "Motor de base de datos y estadísticas para mantener ofertas priorizadas por match, control de estados del Candidate Journey y tableros con métricas de efectividad de aplicaciones por unidades de tiempo (desde diario hasta anual)."
