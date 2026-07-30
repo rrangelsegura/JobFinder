@@ -1,9 +1,19 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/lib/apiClient"
 
+export interface ExtractedCandidate {
+  personal_info?: {
+    first_name?: string
+    last_name?: string
+    email?: string
+    phone?: string | null
+    address?: string | null
+  }
+}
+
 export interface ExtractionStatusData {
   status: "processing" | "completed" | "failed"
-  candidate?: unknown
+  candidate?: ExtractedCandidate
   error?: string
 }
 

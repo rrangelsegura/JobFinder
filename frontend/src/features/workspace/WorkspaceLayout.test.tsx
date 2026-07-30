@@ -1,7 +1,15 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Routes, Route } from "react-router-dom"
+import { vi } from "vitest"
 import { WorkspaceLayout } from "./WorkspaceLayout"
+import { useLogout } from "@/features/auth/useAuth"
+
+vi.mock("@/features/auth/useAuth", () => ({
+  useLogout: vi.fn(),
+}))
+
+const mockedUseLogout = vi.mocked(useLogout)
 
 function renderLayout() {
   return render(
@@ -10,12 +18,23 @@ function renderLayout() {
         <Route path="/workspace" element={<WorkspaceLayout />}>
           <Route path="upload" element={<div>Upload content</div>} />
         </Route>
+        <Route path="/login" element={<div>Login page</div>} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
 describe("WorkspaceLayout", () => {
+  const mutate = vi.fn()
+
+  beforeEach(() => {
+    mutate.mockReset()
+    mockedUseLogout.mockReturnValue({
+      mutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useLogout>)
+  })
+
   it("shows all four navigation sections", () => {
     renderLayout()
 
@@ -55,5 +74,18 @@ describe("WorkspaceLayout", () => {
     await user.click(screen.getByText("Chat"))
 
     expect(screen.getByText("Upload content")).toBeInTheDocument()
+  })
+
+  it("logs out and redirects to /login when the logout button is clicked", async () => {
+    mutate.mockImplementation((_vars, options) => {
+      options?.onSuccess?.()
+    })
+    const user = userEvent.setup()
+    renderLayout()
+
+    await user.click(screen.getByRole("button", { name: /log out/i }))
+
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(screen.getByText("Login page")).toBeInTheDocument()
   })
 })

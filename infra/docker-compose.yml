@@ -35,6 +35,13 @@ services:
     volumes:
       - chroma_data:/chroma/chroma
 
+  maildev:
+    image: maildev/maildev
+    restart: unless-stopped
+    ports:
+      - "1080:1080" # web UI, for real (non-mocked) verification of sent emails
+      - "1025:1025" # SMTP, no auth needed
+
   backend-api:
     build:
       context: ../backend
@@ -47,6 +54,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AGENT_CORE_URL: http://backend-agent:8000
+      SMTP_HOST: maildev
+      SMTP_PORT: 1025
     ports:
       - "3000:3000"
     depends_on:

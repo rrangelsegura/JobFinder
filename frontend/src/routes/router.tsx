@@ -1,12 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import { LoginPageStub } from "@/features/auth/LoginPageStub"
+import { LoginPage } from "@/features/auth/LoginPage"
+import { RegisterPage } from "@/features/auth/RegisterPage"
 import { WorkspaceLayout } from "@/features/workspace/WorkspaceLayout"
 import { UploadPage } from "@/features/upload/UploadPage"
 import { ProtectedRoute } from "./ProtectedRoute"
 
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/workspace/upload" replace /> },
-  { path: "/login", element: <LoginPageStub /> },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
   {
     element: <ProtectedRoute />,
     children: [

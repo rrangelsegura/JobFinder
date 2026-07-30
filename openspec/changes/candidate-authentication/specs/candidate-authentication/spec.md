@@ -15,6 +15,20 @@ The system SHALL let a job seeker register with an email and password via `POST 
 - **WHEN** a job seeker submits `POST /auth/register` with a password shorter than 8 characters
 - **THEN** the system responds `400` and does not create a `Candidate`
 
+### Requirement: Placeholder Name Until CV Upload
+Registration SHALL NOT require `firstName`/`lastName`. The system SHALL create the `Candidate` with placeholder name values, to be overwritten by the existing CV extraction pipeline once the candidate uploads a CV.
+
+#### Scenario: New candidate has a placeholder name before uploading a CV
+- **WHEN** a candidate registers via `POST /auth/register`
+- **THEN** the created `Candidate` has non-empty placeholder `firstName`/`lastName` values, distinct from any real extracted name
+
+### Requirement: CV Upload Reminder Email
+The system SHALL send a single, one-shot reminder email to a newly registered candidate prompting them to upload their CV. It SHALL NOT retry or re-send this email on a schedule.
+
+#### Scenario: Reminder sent once on successful registration
+- **WHEN** `POST /auth/register` successfully creates a `Candidate`
+- **THEN** the system sends exactly one email to that candidate's address prompting them to upload their CV
+
 ### Requirement: Candidate Login
 The system SHALL authenticate a candidate via `POST /auth/login` with email and password, and on success SHALL create a server-side session (Redis-backed) and set an `httpOnly`, `secure`, `sameSite=lax` session cookie.
 

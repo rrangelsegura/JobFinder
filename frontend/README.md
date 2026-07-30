@@ -1,6 +1,6 @@
 # JobFinder Frontend
 
-Candidate-facing dashboard for JobFinder (`candidate-workspace` OpenSpec change). React 18 + TypeScript + Vite, per `docs/frontend-standards.md`.
+Candidate-facing dashboard for JobFinder (`candidate-workspace` + `candidate-authentication` OpenSpec changes). React 18 + TypeScript + Vite, per `docs/frontend-standards.md`.
 
 ## Stack
 
@@ -26,10 +26,10 @@ The API base URL defaults to `http://localhost:3000` (the Node API Gateway from 
 
 All workspace code depends on `useSession()` (`src/features/auth/useSession.ts`), never on the auth API directly. Two implementations exist behind that interface (see `openspec/changes/candidate-workspace/design.md` Decision 1):
 
-- **mock** (default) — auto-authenticates as a fixture candidate. Used for local dev and this change's automated tests, since `US-003` (Candidate Authentication) hasn't shipped yet.
-- **live** — real `GET /auth/session` call. Enable with `VITE_AUTH_MODE=live`; only genuinely exercisable once `US-003` ships.
+- **live** (default) — real `GET /auth/session` call against the Node API Gateway's `/auth/*` endpoints (`candidate-authentication`).
+- **mock** — auto-authenticates as a fixture candidate. Set `VITE_AUTH_MODE=mock` for local UI work with no backend running, or for tests that stub the session directly.
 
-For E2E tests that need to exercise the unauthenticated path against the mock, append `?mockSession=unauthenticated` to the URL.
+For E2E tests that need to exercise the unauthenticated path against the mock adapter specifically, append `?mockSession=unauthenticated` to the URL — not needed against the (now default) live adapter, since a fresh browser context with no session cookie naturally hits the real `401` → redirect path.
 
 ## Tests
 
@@ -42,16 +42,16 @@ npm run format          # Prettier --write
 npm run format:check    # Prettier --check
 ```
 
-`npm run test:e2e` needs a real backend: from `infra/`, `docker compose up -d`, and a `Candidate` row whose `id` matches `useSession.mock.ts`'s `MOCK_SESSION_FIXTURE.candidateId` (currently `1`) — registration doesn't exist yet (`US-003`), so this candidate must be inserted directly for now.
+`npm run test:e2e` needs the real backend stack running (`docker compose up -d` from `infra/`) — registration and login are real now (`candidate-authentication`), so E2E specs register their own throwaway candidate rather than depending on a pre-seeded fixture row.
 
 ## Deviations from `docs/frontend-standards.md`
 
-Fixed two stale claims in the standards doc itself while building this change: it referenced a `tailwind.config.js` that doesn't exist under Tailwind CSS v4 (config lives in `vite.config.ts` + `@theme` in `index.css` instead), and a `codex/feature-frontend-name` branch convention that doesn't match this project's actual `feature/<change-name>` practice.
+Fixed two stale claims in the standards doc itself while building `candidate-workspace`: it referenced a `tailwind.config.js` that doesn't exist under Tailwind CSS v4 (config lives in `vite.config.ts` + `@theme` in `index.css` instead), and a `codex/feature-frontend-name` branch convention that doesn't match this project's actual `feature/<change-name>` practice.
 
-Not yet used, but still the standard for future work in this codebase: Zod response validation, Recharts, Framer Motion, and strict Atomic Design folder structure — none were needed for the workspace shell / CV upload scope of this change (no charts, no agent-reasoning animations, and a flat `features/<domain>` layout was sufficient at this size).
+Not yet used, but still the standard for future work in this codebase: Zod response validation, Recharts, Framer Motion, and strict Atomic Design folder structure — none were needed for the workspace shell / CV upload / auth scope built so far (no charts, no agent-reasoning animations, and a flat `features/<domain>` layout was sufficient at this size).
 
 ## Known limitations
 
 - Chat, Analysis Results, and Action Plan are disabled navigation placeholders — not implemented (see `openspec/changes/candidate-workspace/design.md` Non-Goals).
-- `POST /uploads/cv` still takes `candidateId` in the request body (a pre-existing client-trust gap); deriving it server-side from the session is `US-003`'s responsibility.
-- Full authenticated E2E (real login → real session cookie → protected route) is blocked until `US-003` ships; see `openspec/changes/candidate-workspace/specs/reports/2026-07-30-step-7-manual-e2e-verification.md`.
+- No password reset, social/OAuth login, MFA, email verification, or profile-editing UI (all explicitly out of scope per `US-003`) — a candidate's `firstName`/`lastName` stay at registration placeholders until a future "edit profile" capability exists.
+- `Education`/`WorkExperience`/`Skill`/`Language`/`Certification` are candidate-scoped, not resume-scoped — a known gap for whenever multi-resume support becomes real product scope (see `openspec/changes/candidate-authentication/design.md` Decision 6 / Risks).

@@ -2,15 +2,16 @@ import { test, expect } from "@playwright/test"
 
 // specs/candidate-workspace-shell/spec.md "Authenticated Access Only":
 // an unauthenticated visitor is redirected to /login, workspace never
-// renders. `?mockSession=unauthenticated` is the mock adapter's real-browser
-// escape hatch for this (see useSession.mock.ts) — the mock otherwise
-// auto-logs in for local-dev convenience.
+// renders. `useSession()` defaults to `live` (candidate-authentication
+// design.md Decision 4), so a fresh browser context with no session cookie
+// exercises the real GET /auth/session -> 401 -> redirect path directly —
+// no mock escape hatch needed anymore.
 test("unauthenticated visitor is redirected to /login", async ({ page }) => {
-  await page.goto("/workspace/upload?mockSession=unauthenticated")
+  await page.goto("/workspace/upload")
 
   await expect(page).toHaveURL(/\/login/)
   await expect(
-    page.getByText(/login is not yet available/i),
+    page.getByRole("heading", { name: /log in to jobfinder/i }),
   ).toBeVisible()
   await expect(
     page.getByRole("heading", { name: /upload your cv/i }),

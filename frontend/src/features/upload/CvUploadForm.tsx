@@ -1,6 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { Button } from "@/components/ui/button"
-import { useSession } from "@/features/auth/useSession"
 import { useCvUpload } from "./useCvUpload"
 
 interface CvUploadFormProps {
@@ -8,11 +7,13 @@ interface CvUploadFormProps {
 }
 
 // specs/cv-upload-ui/spec.md "CV Submission from the Upload Section":
-// selects and submits a PDF, calling POST /uploads/cv on submit.
+// selects and submits a PDF, calling POST /uploads/cv on submit. Only
+// rendered inside ProtectedRoute, so the session already exists —
+// candidateId is derived server-side (cv-upload delta spec), never sent
+// here.
 export function CvUploadForm({ onUploaded }: CvUploadFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
-  const { candidateId } = useSession()
   const upload = useCvUpload()
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -30,12 +31,9 @@ export function CvUploadForm({ onUploaded }: CvUploadFormProps) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!file || candidateId === null) return
+    if (!file) return
 
-    upload.mutate(
-      { file, candidateId },
-      { onSuccess: (data) => onUploaded(data.jobId) },
-    )
+    upload.mutate({ file }, { onSuccess: (data) => onUploaded(data.jobId) })
   }
 
   return (

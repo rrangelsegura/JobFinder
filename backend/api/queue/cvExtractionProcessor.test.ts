@@ -1,6 +1,6 @@
 jest.mock("../prisma", () => ({
   prisma: {
-    candidate: { update: jest.fn() },
+    resume: { update: jest.fn() },
     education: { createMany: jest.fn() },
     workExperience: { createMany: jest.fn() },
     skill: { createMany: jest.fn() },
@@ -76,18 +76,25 @@ describe("processCvExtractionJob", () => {
     expect(result).toEqual(SUCCESS_RESPONSE);
   });
 
-  it("updates the candidate's personal info and creates related records with the right candidateId", async () => {
+  // cv-extraction delta spec: personal info is stored per-resume, never
+  // written onto Candidate.{firstName,lastName,email} (Candidate.email is
+  // the login credential and must stay independent of resume content).
+  it("stores extracted personal info on the resume, not the candidate, and creates related records with the right candidateId", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => SUCCESS_RESPONSE,
     }) as any;
 
-    await processCvExtractionJob(buildJob({ candidateId: 42 }));
+    await processCvExtractionJob(buildJob({ resumeId: 7, candidateId: 42 }));
 
-    expect(prisma.candidate.update).toHaveBeenCalledWith(
+    expect(prisma.resume.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 42 },
-        data: expect.objectContaining({ firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" }),
+        where: { id: 7 },
+        data: expect.objectContaining({
+          extractedFirstName: "Ada",
+          extractedLastName: "Lovelace",
+          extractedEmail: "ada@example.com",
+        }),
       })
     );
     expect(prisma.education.createMany).toHaveBeenCalledWith(
@@ -124,7 +131,7 @@ describe("processCvExtractionJob", () => {
     await expect(processCvExtractionJob(buildJob())).rejects.toThrow("OCR failed on both providers");
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(prisma.candidate.update).not.toHaveBeenCalled();
+    expect(prisma.resume.update).not.toHaveBeenCalled();
   });
 
   it("throws a generic error if the agent response has no parseable error body", async () => {
