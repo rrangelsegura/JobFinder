@@ -12,3 +12,7 @@ docs/helloWordGema4e2b.txt
 helloWordOpenrouterFree.txt
 uploads/
 .venv/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
