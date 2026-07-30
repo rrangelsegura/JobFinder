@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jobfinder
+      POSTGRES_PASSWORD: jobfinder
+      POSTGRES_DB: jobfinder
+    ports:
+      - "5433:5432" # host 5433 to avoid clashing with an unrelated local postgres on 5432; internal Docker network still uses 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobfinder"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  chroma:
+    image: chromadb/chroma:1.0.0 # pinned to match backend/requirements.txt's chromadb client version — a client/server mismatch (client 0.5.x vs server :latest=1.0.0) caused a real KeyError('_type') found during manual curl testing
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  backend-api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      DATABASE_URL: postgresql://jobfinder:jobfinder@postgres:5432/jobfinder?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AGENT_CORE_URL: http://backend-agent:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../backend/api:/app/api
+      - ../backend/prisma:/app/prisma
+      - cv_uploads:/app/uploads
+
+  backend-agent:
+    build:
+      context: ../backend
+      dockerfile: agents/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../backend/agents/.env
+    environment:
+      CHROMA_URL: http://chroma:8000
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - chroma
+    volumes:
+      - ../backend/agents:/app/agents
+      - ../backend/knowledge_base:/app/knowledge_base
+      - cv_uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  chroma_data:
+  cv_uploads:
