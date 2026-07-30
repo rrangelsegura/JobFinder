@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import { randomUUID } from "crypto";
 import { prisma } from "../prisma";
 import { cvExtractionQueue } from "../queue/cvExtractionQueue";
+import { requireAuth } from "../middleware/requireAuth";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB, per specs/cv-upload/spec.md
 const PDF_MAGIC_BYTES = Buffer.from("%PDF-");
@@ -23,6 +24,7 @@ export const uploadsRouter = Router();
 
 uploadsRouter.post(
   "/uploads/cv",
+  requireAuth,
   (req: Request, res: Response, next: NextFunction) => {
     upload.single("file")(req, res, (err: unknown) => {
       if (!err) {
@@ -72,7 +74,10 @@ uploadsRouter.post(
         return;
       }
 
-      const candidateId = Number(req.body.candidateId);
+      // Derived from the authenticated session (requireAuth), never the
+      // request body — closes the client-trust gap flagged during
+      // candidate-workspace's enrichment (cv-upload delta spec).
+      const candidateId = req.candidateId as number;
       const fileName = `${randomUUID()}.pdf`;
       const filePath = path.join(UPLOAD_DIR, fileName);
 

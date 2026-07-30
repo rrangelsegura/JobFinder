@@ -1,7 +1,9 @@
 import express, { Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { uploadsRouter } from "./routes/uploads";
 import { uploadStatusRouter } from "./routes/uploadStatus";
+import { authRouter } from "./routes/auth";
 
 // `frontend/` (candidate-workspace) is the first browser-based client this
 // API has ever had, so cross-origin requests from the Vite dev server were
@@ -16,11 +18,13 @@ export function createApp(): Express {
   const app = express();
   app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
   app.use(express.json());
+  app.use(cookieParser());
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });
 
+  app.use(authRouter);
   app.use(uploadsRouter);
   app.use(uploadStatusRouter);
 

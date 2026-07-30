@@ -1,5 +1,7 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useLogout } from "@/features/auth/useAuth"
 import { DisabledNavItem } from "./DisabledNavItem"
 
 // The four sections required by specs/candidate-workspace-shell/spec.md's
@@ -9,6 +11,13 @@ import { DisabledNavItem } from "./DisabledNavItem"
 const DISABLED_SECTIONS = ["Chat", "Analysis Results", "Action Plan"] as const
 
 export function WorkspaceLayout() {
+  const logout = useLogout()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout.mutate(undefined, { onSuccess: () => navigate("/login") })
+  }
+
   return (
     <div className="flex min-h-screen">
       <nav className="flex w-56 flex-col gap-1 border-r border-border p-4">
@@ -28,6 +37,14 @@ export function WorkspaceLayout() {
         {DISABLED_SECTIONS.map((label) => (
           <DisabledNavItem key={label} label={label} />
         ))}
+        <Button
+          variant="outline"
+          className="mt-auto"
+          disabled={logout.isPending}
+          onClick={handleLogout}
+        >
+          Log out
+        </Button>
       </nav>
       <main className="flex-1 p-6">
         <Outlet />

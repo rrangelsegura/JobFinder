@@ -36,11 +36,41 @@ A thin `ioredis` wrapper (`createSession`, `getSession`, `deleteSession`) using 
 
 `candidate-workspace`'s `useSession.live.ts` (design.md Decision 1 of that change) already calls `GET /auth/session` and populates `authStore` correctly per this story's actual response shape (`{ candidateId, email }` / `401`) — it was written against this exact contract and needs no changes. The only change to `frontend/src/features/auth/useSession.ts` is which implementation it re-exports (mock → live). `LoginPage`/`RegisterPage` are new, built with the same TanStack Query + Shadcn/UI + Vitest/RTL conventions already established in that change.
 
+### 5. Registration collects only email + password; a placeholder name is written until the candidate's identity is known
+
+`Candidate.firstName`/`lastName` are `NOT NULL` with no default, but `US-003`'s `POST /auth/register` contract is `{ email, password }` only — no name fields. Rather than extending the register contract or making the columns nullable (both real options, decided against below), registration writes placeholder values (`firstName: "New"`, `lastName: "Candidate"`).
+
+**Note**: this decision originally assumed the CV-extraction pipeline would overwrite these placeholders on upload — Decision 6 below revisits and corrects that assumption. The placeholder itself, and the reasoning against extending the register form or making the columns nullable, still stand.
+
+To close the gap between "registered" and "uploaded a CV," `POST /auth/register` sends a single, one-shot reminder email ("upload your CV") immediately on successful registration — no retry, no scheduling, no delivery-state tracking. This needs a minimal `backend/api/lib/emailService.ts` (nodemailer, SMTP config via env vars) since no email infrastructure exists in this project yet. For real (non-mocked) verification without depending on an external provider or a real inbox, `infra/docker-compose.yml` gains a `maildev` service (SMTP catcher + web UI) — the same "verify for real" discipline `parse-candidate-cv` and `candidate-workspace` already established, applied to email the same way it was applied to OCR/LLM calls and CORS.
+
+**Alternatives considered**:
+- Extend `POST /auth/register` to accept `firstName`/`lastName`. Rejected for this change — `US-003`'s documented contract doesn't ask for them.
+- Nullable `firstName`/`lastName`. Rejected — contradicts `docs/data-model.md`'s existing validation rule ("required, 2-100 characters, letters only") and every other model/query in the codebase already assumes non-null names.
+- Recurring/scheduled reminders "until they upload." Explicitly out of scope for this change — no job scheduler exists in this stack for arbitrary recurring per-candidate reminders (BullMQ here is used for one-shot extraction jobs, not cron-style recurrence), and building one is disproportionate to an auth story. A single reminder at registration is what ships now; recurring reminders are a candidate for a future, separate change if the single email proves insufficient.
+
+### 6. CV-extracted personal info is per-resume, never overwrites `Candidate`'s login identity
+
+Real E2E testing (Group 15) surfaced a genuine bug: `cvExtractionProcessor.ts` (from `parse-candidate-cv`, predating any login concept) wrote `personal_info.{first_name,last_name,email,phone,address}` directly onto `Candidate`, including `email` — the login credential. Two real consequences followed immediately: (1) a candidate's login email could be silently rewritten by whatever email happens to appear in a CV they upload, and (2) re-using a CV whose email already belongs to another `Candidate` row hard-crashes the job on `email`'s unique constraint (observed for real during E2E testing).
+
+The correct model, especially given candidates are expected to hold **multiple resumes** in the future (e.g. tailored per job application), is that CV-reported personal info is a property of *that resume*, not of the candidate's identity:
+
+- `Resume` gains `extractedFirstName`/`extractedLastName`/`extractedEmail`/`extractedPhone`/`extractedAddress` (all nullable). `cvExtractionProcessor.ts` writes personal info there via `prisma.resume.update`, never `prisma.candidate.update`.
+- `Candidate.{firstName,lastName,email,phone,address}` are no longer touched by extraction at all. `email` stays exactly what was registered; `firstName`/`lastName` stay at their registration placeholder until a future "edit profile" capability exists (out of scope here, same as it was before this correction).
+- If a completed extraction's `personal_info.email` differs from the candidate's actual account email, the frontend (`UploadPage`) shows a non-blocking, informational notice — the candidate may have intentionally used a different contact email in their CV, or it could be a typo; either way it's surfaced, never silently applied.
+
+This also modifies `cv-extraction`'s "Persistence and Embedding of Extraction Results" requirement (see the new delta spec) — its original text said extraction persists "the structured `Candidate`... data," which is no longer accurate for personal info specifically.
+
+**Alternatives considered**:
+- Keep overwriting `Candidate` but catch the unique-constraint collision and fail the job with a clear message. Rejected — doesn't address the more fundamental problem of silently changing a candidate's login email on every successful upload, which is surprising and risky even without a collision.
+- Redesign `Education`/`WorkExperience`/`Skill`/`Language`/`Certification` to be resume-scoped too (they currently only have `candidateId`, so multiple resumes' entries would keep accumulating under one candidate with no way to tell which resume contributed what). Out of scope for this change — a real, separate gap worth addressing when multi-resume support is actually built, not something to redesign as a side effect of an auth story.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Existing `Candidate` rows created before this change (including any inserted directly for `candidate-workspace`'s manual E2E testing) have no `passwordHash` and can never log in normally. → **[Mitigation]** Not a blocker: this is pre-launch, test-only data. No migration/backfill is needed; those rows are disposable. Document this in the report rather than building migration tooling for data that doesn't need to survive.
 - **[Risk]** `candidate-workspace`'s frontend E2E tests (Playwright) currently rely on the mock adapter's auto-login and `?mockSession=unauthenticated` escape hatch. Flipping the default adapter to live would break them against a backend that now requires a real session. → **[Mitigation]** Keep `VITE_AUTH_MODE` unset (mock) as the default for that project's existing test suite; this change's own E2E coverage (new, real login → protected route → logout) is what exercises `live` mode for real, via `VITE_AUTH_MODE=live` explicitly set for those runs.
 - **[Risk]** Fixed-window rate limiting is simple but has known edge effects (burst at window boundary). → **[Mitigation]** Acceptable for this scope per `US-003`'s NFR ("even a simple fixed-window counter"); revisit only if abuse is observed in practice.
+- **[Risk]** `Education`/`WorkExperience`/`Skill`/`Language`/`Certification` are still `candidateId`-scoped only, with no `resumeId` link. Re-uploading a second (or multiple) resume just accumulates more of these records under the same candidate with no way to tell which resume a given entry came from, and no de-duplication. → **[Mitigation]** Not fixed here — genuinely out of scope for an auth story. Flagged explicitly (per Decision 6) as a known gap for whenever multi-resume support becomes real product scope, not silently left undiscovered.
 
 ## Migration Plan
 

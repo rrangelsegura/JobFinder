@@ -26,14 +26,16 @@ async function fetchSession(): Promise<SessionData> {
   }
 }
 
-// Real implementation of the `useSession()` boundary (design.md Decision 1).
-// Written now so the swap to it in `useSession.ts` is a one-line change once
-// US-003 ships `GET /auth/session` — not genuinely exercisable end-to-end
-// until then.
+// Real implementation of the `useSession()` boundary (design.md Decision 1
+// of candidate-workspace). The returned state is derived directly from the
+// query result, not from `authStore` — `authStore` is kept in sync via the
+// effect below purely as a side-channel for other future consumers, but
+// this hook's own return value must never lag a render behind the query,
+// or a caller like ProtectedRoute can observe `isLoading:false` with a
+// stale `isAuthenticated:false` in between the query settling and the
+// effect running (a real bug caught by E2E testing: a freshly-logged-in
+// candidate was bounced straight back to /login).
 export const useSession: UseSession = (): SessionState => {
-  const candidateId = useAuthStore((state) => state.candidateId)
-  const email = useAuthStore((state) => state.email)
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated)
   const setUnauthenticated = useAuthStore((state) => state.setUnauthenticated)
 
@@ -53,10 +55,19 @@ export const useSession: UseSession = (): SessionState => {
     }
   }, [query.isSuccess, query.data, setAuthenticated, setUnauthenticated])
 
+  if (query.data) {
+    return {
+      candidateId: query.data.candidateId,
+      email: query.data.email,
+      isAuthenticated: true,
+      isLoading: query.isLoading,
+    }
+  }
+
   return {
-    candidateId,
-    email,
-    isAuthenticated,
+    candidateId: null,
+    email: null,
+    isAuthenticated: false,
     isLoading: query.isLoading,
   }
 }

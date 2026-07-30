@@ -26,10 +26,11 @@ Represents a job candidate who can apply for positions within the system.
 - id: Unique identifier for the candidate (Primary Key)
 - firstName: Candidate's first name (max 100 characters)
 - lastName: Candidate's last name (max 100 characters)
-- email: Candidate's unique email address (max 255 characters)
+- email: Candidate's unique email address (max 255 characters) — this is the login credential (`POST /auth/register`/`login`). It is never modified by CV extraction; a resume's own reported email (which may differ) is stored on that `Resume` record instead (see Resume entity below).
 - phone: Candidate's phone number (optional, max 15 characters)
 - address: Candidate's address (optional, max 100 characters)
-- **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters.
+- passwordHash: Bcrypt hash of the candidate's password (cost factor 12, max 255 characters). Never the plain-text password.
+- **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters; passwordHash is required, set at registration (`POST /auth/register`), never accepted or returned directly by any API response.
 - **Relationships**: educations (1:N), workExperiences (1:N), resumes (1:N), applications (1:N), skills (1:N), languages (1:N), certifications (1:N).
 
 **2. Education**
@@ -61,8 +62,13 @@ Represents uploaded resume files associated with candidates.
 - filePath: File system path to the uploaded resume (max 500 characters)
 - fileType: MIME type or file extension of the resume (max 50 characters)
 - uploadDate: Date and time when the resume was uploaded
+- extractedFirstName: First name as reported in this specific resume (optional, max 100 characters)
+- extractedLastName: Last name as reported in this specific resume (optional, max 100 characters)
+- extractedEmail: Email as reported in this specific resume (optional, max 255 characters) — a candidate may hold several resumes reporting different or no contact info; this is never written onto `Candidate.email`, which is the login credential. If it differs from the candidate's account email, the UI surfaces a non-blocking notice.
+- extractedPhone: Phone as reported in this specific resume (optional, max 15 characters)
+- extractedAddress: Address as reported in this specific resume (optional, max 100 characters)
 - candidateId: Foreign key referencing the Candidate
-- **Validation Rules**: File path required (max 500), File type required (max 50). Supported types: PDF and DOCX (max 10MB).
+- **Validation Rules**: File path required (max 500), File type required (max 50). Supported types: PDF and DOCX (max 10MB). All `extracted*` fields are optional — extraction may fail or a resume may omit a field.
 - **Relationships**: candidate (N:1).
 
 **5. Skill**

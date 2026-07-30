@@ -87,18 +87,22 @@ async function callAgent(data: CvExtractionJobData): Promise<CvExtractionResult>
  * leaves the candidate with some-but-not-all extracted records.
  */
 export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Promise<CvExtractionResult> {
-  const { candidateId } = job.data;
+  const { candidateId, resumeId } = job.data;
   const result = await callAgent(job.data);
 
+  // Personal info goes on the Resume, not the Candidate — Candidate.email is
+  // the login credential and must never be silently rewritten by resume
+  // content (candidates may hold several resumes reporting different or no
+  // contact info).
   const operations: Prisma.PrismaPromise<unknown>[] = [
-    prisma.candidate.update({
-      where: { id: candidateId },
+    prisma.resume.update({
+      where: { id: resumeId },
       data: {
-        firstName: result.personal_info.first_name,
-        lastName: result.personal_info.last_name,
-        email: result.personal_info.email,
-        phone: result.personal_info.phone ?? null,
-        address: result.personal_info.address ?? null,
+        extractedFirstName: result.personal_info.first_name,
+        extractedLastName: result.personal_info.last_name,
+        extractedEmail: result.personal_info.email,
+        extractedPhone: result.personal_info.phone ?? null,
+        extractedAddress: result.personal_info.address ?? null,
       },
     }),
   ];

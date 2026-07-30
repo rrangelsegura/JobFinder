@@ -29,7 +29,126 @@ tags:
     description: Operations for action plans and coaching
   - name: Uploads
     description: Operations for uploading CVs and other documents
+  - name: Auth
+    description: Candidate registration, login, logout, and session check
 paths:
+  /auth/register:
+    post:
+      summary: Register a new candidate
+      description: |
+        Creates a Candidate with a bcrypt-hashed password (cost 12).
+        firstName/lastName are not collected here — they're written as
+        placeholder values and stay independent of any CV the candidate
+        later uploads (see cv-extraction's "Persistence and Embedding of
+        Extraction Results"). Sends a single, one-shot reminder email
+        prompting a CV upload.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "201":
+          description: Candidate created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          description: Invalid email, password under 8 characters, or email already registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+  /auth/login:
+    post:
+      summary: Log in
+      description: |
+        On success, creates a Redis-backed session and sets an httpOnly,
+        sameSite=lax session cookie (secure in production). Unknown email
+        and wrong password return the identical generic error
+        (anti-enumeration). Rate-limited per-IP and per-email.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login succeeded; session cookie set.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: Invalid email or password (same message for both causes).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "429":
+          description: Too many login attempts from this IP or for this email.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+  /auth/session:
+    get:
+      summary: Check the current session
+      description: What ProtectedRoute (frontend) and requireAuth-derived flows gate on.
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: A valid session exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: No valid session cookie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+  /auth/logout:
+    post:
+      summary: Log out
+      description: Deletes the Redis session record and clears the cookie immediately.
+      tags:
+        - Auth
+      responses:
+        "200":
+          description: Logged out.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmptySuccessResponse"
   /candidates:
     get:
       summary: List candidates
@@ -342,9 +461,14 @@ paths:
         Accepts a PDF CV and enqueues an async extraction job (OCR + LLM
         structured extraction + embedding) instead of processing inline.
         Poll `GET /uploads/cv/{jobId}` for the result. Implements
-        `parse-candidate-cv`'s `cv-upload` capability.
+        `parse-candidate-cv`'s `cv-upload` capability. Requires an
+        authenticated session — `candidateId` is derived server-side from
+        it (`requireAuth`) and is never accepted from the request body
+        (candidate-authentication's `cv-upload` delta spec).
       tags:
         - Uploads
+      security:
+        - sessionCookie: []
       requestBody:
         required: true
         content:
@@ -353,15 +477,18 @@ paths:
               type: object
               required:
                 - file
-                - candidateId
               properties:
                 file:
                   type: string
                   format: binary
                   description: PDF only, max 10MB.
-                candidateId:
-                  type: integer
       responses:
+        "401":
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
         "202":
           description: Upload accepted; extraction is processing asynchronously.
           content:
@@ -409,7 +536,82 @@ paths:
                 $ref: "#/components/schemas/UploadErrorResponse"
   # Additional paths for OCR, coaching, etc., can be added later
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: jobfinder_session
   schemas:
+    RegisterResponse:
+      type: object
+      description: Standard response envelope per docs/backend-standards.md.
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            candidateId:
+              type: integer
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
+    SessionResponse:
+      type: object
+      description: Standard response envelope per docs/backend-standards.md.
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            candidateId:
+              type: integer
+            email:
+              type: string
+              format: email
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
+    AuthErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        data:
+          type: object
+          properties:
+            error:
+              type: string
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
+    EmptySuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
     CandidateList:
       type: object
       properties:
