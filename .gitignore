@@ -1,2 +1,14 @@
 .DS_Store
 .worktrees/
+node_modules/
+dist/
+.env
+!.env.example
+__pycache__/
+*.pyc
+docs/DEFINICION DEL SISTEMA corta.txt
+docs/helloWord.txt
+docs/helloWordGema4e2b.txt
+helloWordOpenrouterFree.txt
+uploads/
+.venv/

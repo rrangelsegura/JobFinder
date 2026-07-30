@@ -1,33 +1,68 @@
 project:
-  name: "Career Copilot & Job Search Orchestrator (SaaS)"
+  name: "JobFinder"
   version: "0.1.0"
-  description: "Plataforma SaaS modular de acompañamiento automatizado para maximizar la probabilidad de éxito en la consecución de empleo mediante sistemas multi-agente."
+  description: "Plataforma modular de acompañamiento automatizado para maximizar la probabilidad de éxito en la consecución de empleo mediante un sistema multiagente."
 
 architecture:
-  type: "Dynamic Multi-Agent Mesh with State Persistence"
-  core_engine: "Dify API + Custom Orchestration Layer"
+  type: "Hybrid Multi-Agent Architecture with State Persistence"
+  api_gateway: "Node.js (TypeScript + Express/Fastify)"
+  agentic_core: "Python (FastAPI)"
+  orchestration: "Custom Multi-Agent Orchestrator"
   specification_standard: "OpenSpec V2"
 
 agent_roles_defined:
-  - id: "laboral_transition_coach"
-    description: "Agente enfocado en la orientación estratégica: elección de camino (empleo, emprendimiento, freelance, pensión), industria, empresa, rango salarial y rol."
-  - id: "job_search_coach"
-    description: "Agente enfocado en la ejecución táctica: planeación de networking, diseño de rutas de preparación (Candidate Journey) y cierre de procesos."
-  - id: "professional_recruiter_evaluator"
-    description: "Agente especialista en evaluación con criterio de reclutador: calificación de 'About Me' (Feedback), cálculo de Match Core (escala 0-10) entre perfil y Job Descriptions."
+  - id: "cv_parser"
+    description: "Agente enfocado en la extraccion del contenido de una hoja de vida: lectura de contenido, identificacion de secciones y contenido interno (datos personales, experiencia laboral, habilidades, educacion, etc.) y parseo en formato JSON"
+  - id: "jd_parser"
+    description: "Agente enfocado en la extraccion del contenido de una descripcion de empleo: lectura de contenido, identificacion de secciones y contenido interno (datos de la empresa, tipo de contrato ofrecido, localidad, modalidad temporal ofrecida (por horas, medio tiempo, tiempo completo, etc.), modalidad de ubicacion ofrecida (presencial, hibrido, remoto), experiencia requerida, habilidades requeridas, educacion requerida, rango salarial ofrecido, beneficios ofrecidos, rol, funciones del rol, etc.) y parseo en formato JSON."
+  - id: "matching_engine"
+    description: "Agente enfocado en la estimacion porcentual de la paridad entre el candidato y sus preferencias versus la descripcion de empleo, considerando las habilidades, experiencia, educacion, rango salarial, beneficios ofrecidos, rol, funciones del rol, etc."
+  - id: "gap_analysis_engine"
+    description: "Agente enfocado en la identificacion de fortalezas totales, parciales y brechas entre las habilidades del candidato versus las requeridas en la descripcion de empleo, considerando habilidades, experiencia, educacion, etc."
+  - id: "action_plan_engine"
+    description: "Agente enfocado en la generacion de un plan de accion basado en las brechas identificada y las fortalezas del candidato, considerando habilidades, experiencia, educacion, etc."
+  - id: "cv_tailoring_engine"
+    description: "Agente enfocado en la generacion de un curriculum vitae optimizado para la descripcion de empleo, considerando habilidades, experiencia, educacion, etc."
 
 system_capability_domains:
-  - domain: "data_ingestion_and_persistence"
-    description: "Captura multimodal de información (Job Descriptions, CV, Preferencias) desde PDFs, raspado de plataformas web y formularios manuales, con almacenamiento persistente aislado por usuario."
-  
-  - domain: "ats_and_external_integration"
-    description: "Capa de conexión externa para la aplicación automatizada a sistemas ATS disponibles y sincronización de eventos/tareas con servicios de terceros (Gmail, ClickUp)."
+  - domain: "candidate_profile_management"
+    description: "Manage the complete candidate profile, including personal information, education, work experience, skills, certifications, languages, preferences, and career objectives."
 
-  - domain: "multimodal_generation_engine"
-    description: "Generación de artefactos customizados en texto plano, PDF, PPT y estructura de scripts para video-presentación (CVs optimizadas, cartas de aplicación, perfiles de LinkedIn/GitHub/PeakU)."
+  - domain: "document_ingestion_and_parsing"
+    description: "Ingest, classify, parse, and extract structured information from documents such as CVs, job descriptions, cover letters, certificates, and other supported formats."
 
-  - domain: "interactive_simulation_and_training"
-    description: "Módulo de entrenamiento adaptativo: simulación de entrevistas interactivas y diseño de planes de capacitación basados en las brechas técnicas detectadas contra las ofertas de empleo."
+  - domain: "knowledge_management"
+    description: "Manage the knowledge base, semantic indexing, vector embeddings, retrieval strategies, and contextual information required by AI agents."
 
-  - domain: "analytics_and_pipeline_visualization"
-    description: "Motor de base de datos y estadísticas para mantener ofertas priorizadas por match, control de estados del Candidate Journey y tableros con métricas de efectividad de aplicaciones por unidades de tiempo (desde diario hasta anual)."
+  - domain: "job_search_and_matching"
+    description: "Search, analyze, rank, and recommend job opportunities by comparing candidate profiles against job descriptions using configurable matching strategies."
+
+  - domain: "candidate_journey_management"
+    description: "Manage the end-to-end candidate journey, including career plans, application tracking, interview preparation, progress monitoring, and personalized recommendations."
+
+  - domain: "document_generation"
+    description: "Generate personalized documents such as CVs, cover letters, presentations, summaries, and other employment-related artifacts."
+
+  - domain: "multi_agent_orchestration"
+    description: "Coordinate the execution, collaboration, delegation, and communication among specialized AI agents and supporting tools."
+
+  - domain: "ai_reasoning_and_decision_support"
+    description: "Provide intelligent reasoning, planning, recommendations, validation, and decision support using large language models and AI workflows."
+
+  - domain: "communication_and_notifications"
+    description: "Handle communications with candidates and external services, including notifications, reminders, emails, and workflow events."
+
+  - domain: "user_preferences_and_configuration"
+    description: "Manage user preferences, personalization settings, localization, privacy options, and configurable application behavior."
+
+  - domain: "authentication_and_security"
+    description: "Manage authentication, authorization, identity, access control, security policies, and protection of sensitive information."
+
+  - domain: "persistence_and_state_management"
+    description: "Persist application state, conversation history, candidate journey, workflow execution state, and long-term memory required by the multi-agent system."
+
+  - domain: "observability_and_monitoring"
+    description: "Provide logging, tracing, metrics, auditing, diagnostics, and monitoring capabilities for the platform and AI agents."
+
+  - domain: "external_integrations"
+    description: "Integrate with third-party systems such as job boards, email providers, cloud storage, calendars, ATS platforms, productivity tools, and external APIs."
