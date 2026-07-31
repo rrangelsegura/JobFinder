@@ -1,372 +1,271 @@
-# Data Model Documentation
+---
+description: Hybrid data model specification for JobFinder. Integrates the complete 15-entity relational ATS model with Agentic Memory, Vector domains for RAG, and non-deterministic state management.
+globs:
+  - "backend/prisma/schema.prisma"
+  - "backend/agents/knowledge_base/**/*.py"
+  - "docs/data-model.md"
+alwaysApply: true
+---
 
-This document describes the data model for the LTI (Learning Tracking Initiative) application, including entity descriptions, field definitions, relationships, and an entity-relationship diagram.
+# JobFinder: Hybrid Data Model Specification
 
-## Model Descriptions
+## 1. Architectural Overview
+JobFinder utilizes **Polyglot Persistence** to manage different types of information:
+- **Relational Domain (PostgreSQL)**: Source of truth for user profiles, recruitment entities, and final application states.
+- **Vector Domain (Vector DB)**: High-dimensional embeddings for RAG (Retrieval Augmented Generation) to allow agents to perform semantic search over CVs and Job Descriptions.
+- **Agentic Domain (State/Session)**: Short-term memory, reasoning traces, and non-deterministic state management.
 
-### 1. Candidate
+---
+
+## 2. Relational Domain (The Foundation)
+
+### 2.1 Core Candidate Entities
+
+**1. Candidate**
 Represents a job candidate who can apply for positions within the system.
+- id: Unique identifier for the candidate (Primary Key)
+- firstName: Candidate's first name (max 100 characters)
+- lastName: Candidate's last name (max 100 characters)
+- email: Candidate's unique email address (max 255 characters) — this is the login credential (`POST /auth/register`/`login`). It is never modified by CV extraction; a resume's own reported email (which may differ) is stored on that `Resume` record instead (see Resume entity below).
+- phone: Candidate's phone number (optional, max 15 characters)
+- address: Candidate's address (optional, max 100 characters)
+- passwordHash: Bcrypt hash of the candidate's password (cost factor 12, max 255 characters). Never the plain-text password.
+- **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters; passwordHash is required, set at registration (`POST /auth/register`), never accepted or returned directly by any API response.
+- **Relationships**: educations (1:N), workExperiences (1:N), resumes (1:N), applications (1:N), skills (1:N), languages (1:N), certifications (1:N).
 
-**Fields:**
-- `id`: Unique identifier for the candidate (Primary Key)
-- `firstName`: Candidate's first name (max 100 characters)
-- `lastName`: Candidate's last name (max 100 characters)
-- `email`: Candidate's unique email address (max 255 characters)
-- `phone`: Candidate's phone number (optional, max 15 characters)
-- `address`: Candidate's address (optional, max 100 characters)
-
-**Validation Rules:**
-- First name and last name are required, 2-100 characters, letters only
-- Email is required, must be unique, and follow valid email format
-- Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX if provided
-- Address is optional but cannot exceed 100 characters
-- Maximum of 3 education records per candidate
-
-**Relationships:**
-- `educations`: One-to-many relationship with Education model
-- `workExperiences`: One-to-many relationship with WorkExperience model
-- `resumes`: One-to-many relationship with Resume model
-- `applications`: One-to-many relationship with Application model
-
-### 2. Education
+**2. Education**
 Represents educational background information for candidates.
+- id: Unique identifier for the education record (Primary Key)
+- institution: Name of the educational institution (max 100 characters)
+- title: Degree or certification title obtained (max 250 characters)
+- startDate: Start date of the education period
+- endDate: End date of the education period (optional, null if ongoing)
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: Institution required (max 100), Title required (max 250), Start date required. Max 3 education records per candidate.
+- **Relationships**: candidate (N:1).
 
-**Fields:**
-- `id`: Unique identifier for the education record (Primary Key)
-- `institution`: Name of the educational institution (max 100 characters)
-- `title`: Degree or certification title obtained (max 250 characters)
-- `startDate`: Start date of the education period
-- `endDate`: End date of the education period (optional, null if ongoing)
-- `candidateId`: Foreign key referencing the Candidate
-
-**Validation Rules:**
-- Institution is required and cannot exceed 100 characters
-- Title is required and cannot exceed 250 characters
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
-- Maximum of 3 education records per candidate
-
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
-
-### 3. WorkExperience
+**3. WorkExperience**
 Represents work history and professional experience for candidates.
+- id: Unique identifier for the work experience record (Primary Key)
+- company: Name of the company or organization (max 100 characters)
+- position: Job title or position held (max 100 characters)
+- description: Description of responsibilities and achievements (optional, unbounded length — a real CV's job description exceeded the original 200-character limit, see cv-upload-hardening)
+- startDate: Start date of the work experience
+- endDate: End date of the work experience (optional, null if current)
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (unbounded), Start date required.
+- **Relationships**: candidate (N:1).
 
-**Fields:**
-- `id`: Unique identifier for the work experience record (Primary Key)
-- `company`: Name of the company or organization (max 100 characters)
-- `position`: Job title or position held (max 100 characters)
-- `description`: Description of responsibilities and achievements (optional, max 200 characters)
-- `startDate`: Start date of the work experience
-- `endDate`: End date of the work experience (optional, null if current)
-- `candidateId`: Foreign key referencing the Candidate
-
-**Validation Rules:**
-- Company name is required and cannot exceed 100 characters
-- Position is required and cannot exceed 100 characters
-- Description is optional but cannot exceed 200 characters if provided
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
-
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
-
-### 4. Resume
+**4. Resume**
 Represents uploaded resume files associated with candidates.
+- id: Unique identifier for the resume record (Primary Key)
+- filePath: File system path to the uploaded resume (max 500 characters)
+- fileType: MIME type or file extension of the resume (max 50 characters)
+- uploadDate: Date and time when the resume was uploaded
+- extractedFirstName: First name as reported in this specific resume (optional, max 100 characters)
+- extractedLastName: Last name as reported in this specific resume (optional, max 100 characters)
+- extractedEmail: Email as reported in this specific resume (optional, max 255 characters) — a candidate may hold several resumes reporting different or no contact info; this is never written onto `Candidate.email`, which is the login credential. If it differs from the candidate's account email, the UI surfaces a non-blocking notice.
+- extractedPhone: Phone as reported in this specific resume (optional, max 15 characters)
+- extractedAddress: Address as reported in this specific resume (optional, max 100 characters)
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: File path required (max 500), File type required (max 50). Supported types: PDF and DOCX (max 10MB). All `extracted*` fields are optional — extraction may fail or a resume may omit a field.
+- **Relationships**: candidate (N:1).
 
-**Fields:**
-- `id`: Unique identifier for the resume record (Primary Key)
-- `filePath`: File system path to the uploaded resume (max 500 characters)
-- `fileType`: MIME type or file extension of the resume (max 50 characters)
-- `uploadDate`: Date and time when the resume was uploaded
-- `candidateId`: Foreign key referencing the Candidate
+**5. Skill**
+Represents a technical or soft skill extracted from a candidate's resume.
+- id: Unique identifier for the skill record (Primary Key)
+- name: Skill name, e.g. "Python", "Communication" (max 100 characters)
+- type: Skill category — `technical` or `soft`
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: Name required (max 100), type required (one of `technical`, `soft`). No maximum record count per candidate.
+- **Relationships**: candidate (N:1).
 
-**Validation Rules:**
-- File path is required and cannot exceed 500 characters
-- File type is required and cannot exceed 50 characters
-- Upload date is automatically set when file is uploaded
-- Supported file types: PDF and DOCX (max 10MB)
+**6. Language**
+Represents a language the candidate speaks, with optional proficiency.
+- id: Unique identifier for the language record (Primary Key)
+- name: Language name, e.g. "English", "Spanish" (max 50 characters)
+- proficiency: Proficiency level, e.g. "native", "fluent", "intermediate" (optional, free text, max 50 characters)
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: Name required (max 50), proficiency optional. No maximum record count per candidate.
+- **Relationships**: candidate (N:1).
 
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
+**7. Certification**
+Represents a professional certification held by the candidate.
+- id: Unique identifier for the certification record (Primary Key)
+- name: Certification name (max 150 characters)
+- issuer: Issuing organization (optional, max 150 characters)
+- issueDate: Date the certification was issued (optional)
+- candidateId: Foreign key referencing the Candidate
+- **Validation Rules**: Name required (max 150), issuer and issueDate optional. No maximum record count per candidate.
+- **Relationships**: candidate (N:1).
 
-### 5. Company
+### 2.2 Recruitment & Company Entities
+
+**8. Company**
 Represents companies that post job positions and employ staff.
+- id: Unique identifier for the company (Primary Key)
+- name: Unique company name
+- **Relationships**: employees (1:N), positions (1:N).
 
-**Fields:**
-- `id`: Unique identifier for the company (Primary Key)
-- `name`: Unique company name
-
-**Relationships:**
-- `employees`: One-to-many relationship with Employee model
-- `positions`: One-to-many relationship with Position model
-
-### 6. Employee
+**9. Employee**
 Represents employees within companies who can conduct interviews.
+- id: Unique identifier for the employee (Primary Key)
+- name: Employee's full name
+- email: Employee's unique email address
+- role: Employee's role or job title
+- isActive: Boolean indicating if the employee is currently active
+- companyId: Foreign key referencing the Company
+- **Relationships**: company (N:1), interviews (1:N).
 
-**Fields:**
-- `id`: Unique identifier for the employee (Primary Key)
-- `name`: Employee's full name
-- `email`: Employee's unique email address
-- `role`: Employee's role or job title
-- `isActive`: Boolean indicating if the employee is currently active
-- `companyId`: Foreign key referencing the Company
-
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviews`: One-to-many relationship with Interview model
-
-### 7. InterviewType
+**10. InterviewType**
 Defines different types of interviews that can be conducted.
+- id: Unique identifier for the interview type (Primary Key)
+- name: Name of the interview type (e.g., Technical, Behavioral, HR)
+- description: Detailed description of the interview type
+- **Relationships**: interviewSteps (1:N).
 
-**Fields:**
-- `id`: Unique identifier for the interview type (Primary Key)
-- `name`: Name of the interview type (e.g., "Technical", "HR", "Behavioral")
-- `description`: Detailed description of the interview type (optional)
+**11. InterviewFlow**
+Represents a sequence of interview steps for a specific hiring process.
+- id: Unique identifier for the interview flow (Primary Key)
+- description: Description of the flow's purpose and structure
+- **Relationships**: interviewSteps (1:N), positions (1:N).
 
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
+**12. InterviewStep**
+Represents a specific step within an interview flow.
+- id: Unique identifier for the interview step (Primary Key)
+- name: Name of the step (e.g., First Screening, Technical Panel)
+- orderIndex: The sequence number of the step in the flow
+- interviewFlowId: Foreign key referencing the InterviewFlow
+- interviewTypeId: Foreign key referencing the InterviewType
+- **Relationships**: interviewFlow (N:1), interviewType (N:1), applications (1:N), interviews (1:N).
 
-### 8. InterviewFlow
-Represents a sequence of interview steps that define the hiring process.
+**13. Position**
+Represents a job opening that candidates can apply for.
+- id: Unique identifier for the position (Primary Key)
+- title: Job title (max 200 characters)
+- description: Full job description
+- status: Status of the position (e.g., Open, Closed, Draft)
+- isVisible: Boolean indicating if the position is public
+- location: Physical or remote location of the job
+- jobDescription: Detailed job description for matching
+- requirements: List of technical and soft requirements
+- responsibilities: Main duties and responsibilities
+- salaryMin: Minimum salary for the position
+- salaryMax: Maximum salary for the position
+- employmentType: Type of employment (e.g., Full-time, Part-time, Contract)
+- benefits: List of benefits offered
+- companyDescription: Brief description of the company
+- applicationDeadline: Deadline for submitting applications
+- contactInfo: Contact information for the recruiter
+- companyId: Foreign key referencing the Company
+- interviewFlowId: Foreign key referencing the InterviewFlow
+- **Relationships**: company (N:1), interviewFlow (N:1), applications (1:N).
 
-**Fields:**
-- `id`: Unique identifier for the interview flow (Primary Key)
-- `description`: Description of the interview flow process (optional)
+**14. Application**
+Represents a candidate's application for a specific position.
+- id: Unique identifier for the application (Primary Key)
+- applicationDate: Date and time of application
+- currentInterviewStep: Current step the candidate is at in the process
+- notes: Internal notes regarding the application
+- positionId: Foreign key referencing the Position
+- candidateId: Foreign key referencing the Candidate
+- interviewStepId: Foreign key referencing the InterviewStep
+- **Relationships**: position (N:1), candidate (N:1), interviewStep (N:1), interviews (1:N).
 
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
-- `positions`: One-to-many relationship with Position model
-
-### 9. InterviewStep
-Represents individual steps within an interview flow.
-
-**Fields:**
-- `id`: Unique identifier for the interview step (Primary Key)
-- `name`: Name of the interview step
-- `orderIndex`: Numeric order of this step within the flow
-- `interviewFlowId`: Foreign key referencing the InterviewFlow
-- `interviewTypeId`: Foreign key referencing the InterviewType
-
-**Relationships:**
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `interviewType`: Many-to-one relationship with InterviewType model
-- `applications`: One-to-many relationship with Application model
-- `interviews`: One-to-many relationship with Interview model
-
-### 10. Position
-Represents job positions available for application.
-
-**Fields:**
-- `id`: Unique identifier for the position (Primary Key)
-- `companyId`: Foreign key referencing the Company (required)
-- `interviewFlowId`: Foreign key referencing the InterviewFlow (required)
-- `title`: Job title (required, max 100 characters)
-- `description`: Brief description of the position (required)
-- `status`: Current status of the position (default: "Draft", valid values: Open, Contratado, Cerrado, Borrador)
-- `isVisible`: Boolean indicating if the position is publicly visible (default: false)
-- `location`: Job location (required)
-- `jobDescription`: Detailed job description (required)
-- `requirements`: Job requirements and qualifications (optional)
-- `responsibilities`: Job responsibilities (optional)
-- `salaryMin`: Minimum salary range (optional, must be >= 0)
-- `salaryMax`: Maximum salary range (optional, must be >= 0 and >= salaryMin)
-- `employmentType`: Type of employment (e.g., "Full-time", "Part-time", "Contract") (optional)
-- `benefits`: Job benefits description (optional)
-- `companyDescription`: Description of the hiring company (optional)
-- `applicationDeadline`: Deadline for applications (optional, must be a future date)
-- `contactInfo`: Contact information for inquiries (optional)
-
-**Validation Rules:**
-- Title is required and cannot exceed 100 characters
-- Description, location, and jobDescription are required fields
-- Status must be one of: Open, Contratado, Cerrado, Borrador
-- Company and interview flow references must exist in the database
-- Salary values must be non-negative numbers
-- Application deadline must be a future date if provided
-
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `applications`: One-to-many relationship with Application model
-
-### 11. Application
-Represents a candidate's application to a specific position.
-
-**Fields:**
-- `id`: Unique identifier for the application (Primary Key)
-- `applicationDate`: Date when the application was submitted
-- `currentInterviewStep`: Current step in the interview process
-- `notes`: Additional notes about the application (optional)
-- `positionId`: Foreign key referencing the Position
-- `candidateId`: Foreign key referencing the Candidate
-- `interviewStepId`: Foreign key referencing the current InterviewStep
-
-**Relationships:**
-- `position`: Many-to-one relationship with Position model
-- `candidate`: Many-to-one relationship with Candidate model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `interviews`: One-to-many relationship with Interview model
-
-### 12. Interview
+**15. Interview**
 Represents individual interview sessions conducted as part of an application.
+- id: Unique identifier for the interview (Primary Key)
+- interviewDate: Date and time of the interview
+- result: Interview result or outcome (optional)
+- score: Numeric score or rating from the interview (optional)
+- notes: Interview notes and feedback (optional)
+- applicationId: Foreign key referencing the Application
+- interviewStepId: Foreign key referencing the InterviewStep
+- employeeId: Foreign key referencing the conducting Employee
+- **Relationships**: application (N:1), interviewStep (N:1), employee (N:1).
 
-**Fields:**
-- `id`: Unique identifier for the interview (Primary Key)
-- `interviewDate`: Date and time of the interview
-- `result`: Interview result or outcome (optional)
-- `score`: Numeric score or rating from the interview (optional)
-- `notes`: Interview notes and feedback (optional)
-- `applicationId`: Foreign key referencing the Application
-- `interviewStepId`: Foreign key referencing the InterviewStep
-- `employeeId`: Foreign key referencing the conducting Employee
+---
 
-**Relationships:**
-- `application`: Many-to-one relationship with Application model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `employee`: Many-to-one relationship with Employee model
+## 3. Agentic Extensions (The Intelligence Layer)
 
-## Entity Relationship Diagram
+### 3.1 Analysis & Matching
+**MatchAnalysis**
+- id: UUID (PK)
+- candidateId: UUID (FK $\rightarrow$ Candidate)
+- positionId: UUID (FK $\rightarrow$ Position)
+- score: Float (0-10)
+- justification: Text (Detailed reasoning provided by the Matchmaker Agent)
+- identifiedGaps: JSONB (List of missing skills and requirements)
+- createdAt: DateTime
+
+**CandidateJourney**
+- id: UUID (PK)
+- candidateId: UUID (FK $\rightarrow$ Candidate)
+- currentStage: Enum (Pre-Application, Application, Interview, Follow-up)
+- actionPlan: JSONB (Structured plan generated by the Career Coach agent)
+- milestones: JSONB (Completed vs Pending activities)
+- updatedAt: DateTime
+
+### 3.2 AI Memory & Orchestration
+**AgentSession**
+- sessionId: UUID (PK)
+- agentHistory: JSONB (Log of agent transitions and tool calls)
+- contextSummary: Text (Compressed memory of the current interaction)
+- activeGoal: String (The specific objective currently being pursued)
+
+**PromptRegistry**
+- id: UUID (PK)
+- agentRole: Enum (Orchestrator, Matchmaker, CV_Analyst, Coach)
+- promptTemplate: Text (The actual prompt used)
+- version: String (e.g., v1.0.2)
+- isActive: Boolean
+
+---
+
+## 4. Vector Domain (RAG Knowledge Base)
+Managed in a Vector Database (e.g., ChromaDB/Pinecone).
+
+- **Collection: resumes_embeddings**
+    - vector: Array<Float>
+    - metadata: { "candidateId": "uuid", "chunk_index": 0, "section": "skills" }
+    - text: String (Original fragment)
+
+- **Collection: job_descriptions_embeddings**
+    - vector: Array<Float>
+    - metadata: { "positionId": "uuid", "section": "requirements" }
+    - text: String (Original fragment)
+
+---
+
+## 5. Entity Relationship Diagram (Combined)
 
 ```mermaid
 erDiagram
-    Candidate {
-        Int id PK
-        String firstName
-        String lastName
-        String email UK
-        String phone
-        String address
-    }
-    Education {
-        Int id PK
-        String institution
-        String title
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    WorkExperience {
-        Int id PK
-        String company
-        String position
-        String description
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    Resume {
-        Int id PK
-        String filePath
-        String fileType
-        DateTime uploadDate
-        Int candidateId FK
-    }
-    Company {
-        Int id PK
-        String name UK
-    }
-    Employee {
-        Int id PK
-        String name
-        String email UK
-        String role
-        Boolean isActive
-        Int companyId FK
-    }
-    InterviewType {
-        Int id PK
-        String name
-        String description
-    }
-    InterviewFlow {
-        Int id PK
-        String description
-    }
-    InterviewStep {
-        Int id PK
-        String name
-        Int orderIndex
-        Int interviewFlowId FK
-        Int interviewTypeId FK
-    }
-    Position {
-        Int id PK
-        String title
-        String description
-        String status
-        Boolean isVisible
-        String location
-        String jobDescription
-        String requirements
-        String responsibilities
-        Float salaryMin
-        Float salaryMax
-        String employmentType
-        String benefits
-        String companyDescription
-        DateTime applicationDeadline
-        String contactInfo
-        Int companyId FK
-        Int interviewFlowId FK
-    }
-    Application {
-        Int id PK
-        DateTime applicationDate
-        Int currentInterviewStep
-        String notes
-        Int positionId FK
-        Int candidateId FK
-        Int interviewStepId FK
-    }
-    Interview {
-        Int id PK
-        DateTime interviewDate
-        String result
-        Int score
-        String notes
-        Int applicationId FK
-        Int interviewStepId FK
-        Int employeeId FK
-    }
+    CANDIDATE ||--o{ EDUCATION : "has"
+    CANDIDATE ||--o{ WORK_EXPERIENCE : "has"
+    CANDIDATE ||--o{ RESUME : "has"
+    CANDIDATE ||--o{ APPLICATION : "submits"
+    CANDIDATE ||--o{ SKILL : "has"
+    CANDIDATE ||--o{ LANGUAGE : "speaks"
+    CANDIDATE ||--o{ CERTIFICATION : "holds"
+    CANDIDATE ||--|| CANDIDATE_JOURNEY : "tracks"
+    CANDIDATE ||--o{ MATCH_ANALYSIS : "evaluated_in"
 
-    Candidate ||--o{ Education : "has"
-    Candidate ||--o{ WorkExperience : "has"
-    Candidate ||--o{ Resume : "has"
-    Candidate ||--o{ Application : "submits"
-    
-    Company ||--o{ Employee : "employs"
-    Company ||--o{ Position : "offers"
-    
-    InterviewType ||--o{ InterviewStep : "defines"
-    InterviewFlow ||--o{ InterviewStep : "includes"
-    InterviewFlow ||--o{ Position : "guides"
-    
-    Position ||--o{ Application : "receives"
-    Application ||--o{ Interview : "includes"
-    
-    InterviewStep ||--o{ Application : "current_step"
-    InterviewStep ||--o{ Interview : "conducted_at"
-    
-    Employee ||--o{ Interview : "conducts"
+    COMPANY ||--o{ EMPLOYEE : "employs"
+    COMPANY ||--o{ POSITION : "offers"
+
+    POSITION ||--o{ APPLICATION : "receives"
+    POSITION ||--o{ MATCH_ANALYSIS : "target_of"
+
+    RESUME ||--o{ VECTOR_EMBEDDINGS : "indexed_as"
+    POSITION ||--o{ VECTOR_EMBEDDINGS : "indexed_as"
+
+    AGENT_SESSION ||--o{ MATCH_ANALYSIS : "generates"
+    AGENT_SESSION ||--o{ PROMPT_REGISTRY : "utilizes"
 ```
 
-## Key Design Principles
-
-1. **Referential Integrity**: All foreign key relationships ensure data consistency across the system.
-
-2. **Flexibility**: The interview flow system allows for customizable hiring processes per position.
-
-3. **Audit Trail**: Application and interview dates provide a complete timeline of the hiring process.
-
-4. **Extensibility**: The modular design allows for easy addition of new features and data points.
-
-5. **Data Normalization**: The model follows database normalization principles to minimize redundancy and ensure data integrity.
-
-## Notes
-
-- All `id` fields serve as primary keys with auto-increment functionality
-- Foreign key relationships maintain referential integrity
-- Optional fields allow for flexible data entry while maintaining required core information
-- The interview system supports multi-step hiring processes with different types of interviews
-- Email fields have unique constraints to prevent duplicate accounts 
+## 6. Key Design Principles
+1. **Relational Integrity**: Core data follows strict normalization to prevent redundancy.
+2. **Symmetry**: The Vector DB must stay synced with the Relational DB.
+3. **Traceability**: Every AI-generated score or plan must be linked to an AgentSession.
+4. **Type Safety**: All data flowing from Relational $\rightarrow$ Agentic Core must be validated via Pydantic models.

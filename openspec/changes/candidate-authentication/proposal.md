@@ -1,0 +1,29 @@
+## Why
+
+`candidate-workspace` (US-002) shipped a working dashboard and CV upload flow behind a mock auth adapter, explicitly because no real identity system exists yet. Two concrete problems block real use: (1) `POST /uploads/cv` trusts a client-supplied `candidateId` with no verification — anyone can attribute an upload to any candidate id — and (2) there is no way for a real job seeker to register, log in, or have their session persist, so the workspace can never be used with real user accounts.
+
+## What Changes
+
+- Add `Candidate.passwordHash` and implement `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/session` per `US-003`'s documented contract.
+- Server-side sessions backed by Redis, delivered via an `httpOnly`/`secure`/`sameSite=lax` cookie — never a JWT, so logout revokes access immediately.
+- Passwords hashed with bcrypt (cost factor 12); login failures return one generic error regardless of cause (anti-enumeration); basic per-IP/per-email rate limiting on login.
+- New `requireAuth` Express middleware deriving `req.candidateId` from the session, reusable by any protected route.
+- **BREAKING**: `POST /uploads/cv` no longer accepts `candidateId` in the request body — it now requires `requireAuth` and derives the candidate from the session. This closes the client-trust gap flagged during `candidate-workspace`'s enrichment.
+- Frontend: `LoginPage`, `RegisterPage`, `useAuth` (register/login/logout mutations), and swapping `candidate-workspace`'s `useSession()` boundary from its mock to `useSession.live.ts` (already written, per that change's design.md Decision 1).
+
+## Capabilities
+
+### New Capabilities
+- `candidate-authentication`: registration, login, logout, and session-check for candidates, backed by bcrypt password hashing and Redis-backed server-side sessions delivered via an httpOnly cookie.
+
+### Modified Capabilities
+- `cv-upload`: `candidateId` SHALL be derived from the authenticated session (via `requireAuth`), not accepted from the request body. Requests without a valid session are rejected before any upload processing occurs.
+- `cv-extraction`: personal info from a CV (name, email, phone, address) SHALL be persisted per-resume, never onto `Candidate`'s login identity — `Candidate.email` in particular SHALL NOT be modified by extraction. Found and corrected during this change's own E2E verification: the original `parse-candidate-cv` behavior of overwriting `Candidate.email` from resume content became a real bug once `Candidate.email` became a login credential (it could silently change how a candidate logs in, and crashed on an email collision between two candidates' resumes).
+
+## Impact
+
+- **Data model**: `Candidate.passwordHash` (new field, migration). Registration writes a placeholder `firstName`/`lastName` — these are no longer auto-filled from CV uploads (see below); a future "edit profile" capability would fill them for real. `Resume` gains `extractedFirstName`/`extractedLastName`/`extractedEmail`/`extractedPhone`/`extractedAddress` (new fields, migration) to hold each resume's own reported personal info, independent of the candidate's login identity.
+- **Backend API**: new `backend/api/routes/auth.ts`, `backend/api/middleware/requireAuth.ts`, `backend/api/lib/session.ts`, `backend/api/lib/emailService.ts` (new, minimal SMTP-based sender — no email infrastructure existed before this change); `backend/api/routes/uploads.ts` modified to use `requireAuth` instead of a body field; `backend/api/queue/cvExtractionProcessor.ts` modified to persist personal info onto `Resume` instead of `Candidate`; existing upload/extraction tests updated to reflect both.
+- **Frontend**: new `frontend/src/features/auth/{LoginPage,RegisterPage}.tsx`, `useAuth.ts`; `frontend/src/features/auth/useSession.ts` swap point flipped from mock to live; `frontend/src/stores/authStore.ts` now populated from a real endpoint instead of a fixture; `frontend/src/features/upload/UploadPage.tsx` shows a non-blocking notice when a completed extraction's email differs from the candidate's account email.
+- **Docs**: `docs/api-spec.yml` (new `Auth` tag, `candidateId` removed from `POST /uploads/cv`'s request body), `docs/data-model.md` (`passwordHash` field on `Candidate`; new extracted-info fields on `Resume`; clarify `Candidate.email` is login-only).
+- **Infra**: `infra/docker-compose.yml` gains a `maildev` service (SMTP catcher, for real non-mocked verification of the registration reminder email) — Redis itself needs no changes, already running for BullMQ.
