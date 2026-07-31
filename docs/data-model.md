@@ -49,11 +49,11 @@ Represents work history and professional experience for candidates.
 - id: Unique identifier for the work experience record (Primary Key)
 - company: Name of the company or organization (max 100 characters)
 - position: Job title or position held (max 100 characters)
-- description: Description of responsibilities and achievements (optional, max 200 characters)
+- description: Description of responsibilities and achievements (optional, unbounded length — a real CV's job description exceeded the original 200-character limit, see cv-upload-hardening)
 - startDate: Start date of the work experience
 - endDate: End date of the work experience (optional, null if current)
 - candidateId: Foreign key referencing the Candidate
-- **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (max 200), Start date required.
+- **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (unbounded), Start date required.
 - **Relationships**: candidate (N:1).
 
 **4. Resume**

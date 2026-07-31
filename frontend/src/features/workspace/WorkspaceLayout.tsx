@@ -19,8 +19,11 @@ export function WorkspaceLayout() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <nav className="flex w-56 flex-col gap-1 border-r border-border p-4">
+    <div className="flex min-h-screen bg-muted/30">
+      <nav className="flex w-56 flex-col gap-1 border-r border-border bg-card p-4">
+        <p className="mb-3 px-3 text-sm font-semibold tracking-tight">
+          JobFinder
+        </p>
         <NavLink
           to="/workspace/upload"
           className={({ isActive }) =>
@@ -46,7 +49,7 @@ export function WorkspaceLayout() {
           Log out
         </Button>
       </nav>
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-8">
         <Outlet />
       </main>
     </div>

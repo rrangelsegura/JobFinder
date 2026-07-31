@@ -1,5 +1,6 @@
 import { createApp } from "./app";
 import { startCvExtractionWorker } from "./queue/cvExtractionWorker";
+import { handleExtractionJobFailure } from "./queue/handleExtractionFailure";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
@@ -12,6 +13,8 @@ app.listen(PORT, () => {
 
 const worker = startCvExtractionWorker();
 worker.on("failed", (job, err) => {
-  // eslint-disable-next-line no-console
-  console.error(`CV extraction job ${job?.id} failed: ${err.message}`);
+  handleExtractionJobFailure(job, err).catch((emailErr: unknown) => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to send extraction-failure acknowledgment email:", emailErr);
+  });
 });

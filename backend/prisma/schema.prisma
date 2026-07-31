@@ -53,7 +53,11 @@ model WorkExperience {
   id          Int       @id @default(autoincrement())
   company     String    @db.VarChar(100)
   position    String    @db.VarChar(100)
-  description String?   @db.VarChar(200)
+  // cv-upload-hardening: VarChar(200) (parse-candidate-cv's original limit)
+  // was sized for synthetic fixtures, not real job descriptions — a real CV
+  // exceeded it and crashed the persistence transaction. Unbounded (maps to
+  // Postgres TEXT) instead of guessing a "big enough" fixed length.
+  description String?
   startDate   DateTime
   endDate     DateTime?
 

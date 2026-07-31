@@ -4,6 +4,8 @@ import { mapExtractionErrorToUserMessage } from "./errorMessages"
 // error substrings documented in openspec/specs/cv-upload and
 // cv-extraction.
 describe("mapExtractionErrorToUserMessage", () => {
+  // File-level problems are genuinely the candidate's to fix — copy
+  // unchanged by cv-upload-hardening.
   it.each([
     ["Unsupported file type: text/plain", "Please upload a PDF file."],
     [
@@ -14,21 +16,22 @@ describe("mapExtractionErrorToUserMessage", () => {
       "The uploaded file is unreadable or corrupted",
       "We couldn't read that file — try re-exporting your CV as a PDF.",
     ],
-    [
-      "OCR failed for both Tesseract and Textract",
-      "We had trouble reading your CV. Please try again or use a different file.",
-    ],
-    [
-      "LLM output failed schema validation on both attempts",
-      "We had trouble understanding your CV's content. Please try again.",
-    ],
   ])("maps %s to the documented friendly message", (rawError, expected) => {
     expect(mapExtractionErrorToUserMessage(rawError)).toBe(expected)
   })
 
-  it("falls back to a generic message for an unrecognized error", () => {
-    expect(mapExtractionErrorToUserMessage("Something exploded")).toBe(
-      "Something went wrong processing your CV. Please try again.",
-    )
+  // cv-upload-hardening: every extraction-stage failure (OCR, LLM schema
+  // validation) is system-side — file-level problems are already caught
+  // before a job is ever enqueued. These must not say "try again" and must
+  // be clear the issue is JobFinder's, not the candidate's file.
+  it.each([
+    "OCR failed for both Tesseract and Textract",
+    "LLM output failed schema validation on both attempts",
+    "Something exploded", // unrecognized error falls back to the same honest copy
+  ])("does not tell the candidate to just try again for a system-side failure (%s)", (rawError) => {
+    const message = mapExtractionErrorToUserMessage(rawError)
+    expect(message.toLowerCase()).not.toMatch(/try again/)
+    expect(message.toLowerCase()).toMatch(/on our (end|side)|our (bug|issue|mistake)/)
+    expect(message.toLowerCase()).toMatch(/notify|let you know|email you/)
   })
 })

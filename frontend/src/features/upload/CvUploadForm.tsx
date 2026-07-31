@@ -1,5 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useCvUpload } from "./useCvUpload"
 
 interface CvUploadFormProps {
@@ -38,15 +40,15 @@ export function CvUploadForm({ onUploaded }: CvUploadFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <label htmlFor="cv-file" className="text-sm font-medium">
-        CV (PDF)
-      </label>
-      <input
-        id="cv-file"
-        type="file"
-        accept="application/pdf"
-        onChange={handleFileChange}
-      />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="cv-file">CV (PDF)</Label>
+        <Input
+          id="cv-file"
+          type="file"
+          accept="application/pdf"
+          onChange={handleFileChange}
+        />
+      </div>
       {validationError && (
         <p role="alert" className="text-sm text-destructive">
           {validationError}

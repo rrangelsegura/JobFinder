@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useSession } from "@/features/auth/useSession"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { CvUploadForm } from "./CvUploadForm"
 import { UploadStatusIndicator } from "./UploadStatusIndicator"
 import { useCvExtractionStatus } from "./useCvExtractionStatus"
@@ -18,26 +19,30 @@ export function UploadPage() {
     extractedEmail.toLowerCase() !== accountEmail.toLowerCase()
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Upload your CV</h1>
-      {!data && <CvUploadForm onUploaded={setJobId} />}
-      {data && (
-        <UploadStatusIndicator
-          status={data.status}
-          errorMessage={
-            data.status === "failed"
-              ? mapExtractionErrorToUserMessage(data.error ?? "")
-              : undefined
-          }
-        />
-      )}
-      {emailMismatch && (
-        <p className="text-sm text-muted-foreground">
-          Heads up: your CV lists <strong>{extractedEmail}</strong>, which is
-          different from your account email ({accountEmail}). If that's a
-          typo, no action is needed — this doesn't change how you log in.
-        </p>
-      )}
-    </div>
+    <Card className="max-w-xl">
+      <CardHeader>
+        <h1 className="text-xl font-semibold">Upload your CV</h1>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        {!data && <CvUploadForm onUploaded={setJobId} />}
+        {data && (
+          <UploadStatusIndicator
+            status={data.status}
+            errorMessage={
+              data.status === "failed"
+                ? mapExtractionErrorToUserMessage(data.error ?? "")
+                : undefined
+            }
+          />
+        )}
+        {emailMismatch && (
+          <p className="text-sm text-muted-foreground">
+            Heads up: your CV lists <strong>{extractedEmail}</strong>, which
+            is different from your account email ({accountEmail}). If that's
+            a typo, no action is needed — this doesn't change how you log in.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

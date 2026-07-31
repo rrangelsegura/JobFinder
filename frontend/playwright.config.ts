@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test"
 
 export default defineConfig({
   testDir: "./e2e",
+  // Leading-underscore specs are one-off manual-verification scripts (e.g.
+  // depend on a real local file path or a live local LLM) — excluded from
+  // the regular suite, run explicitly by filename when needed.
+  testIgnore: "**/_*.spec.ts",
   fullyParallel: false,
   retries: 0,
   // The real CV extraction flow (OCR + local LLM) can take well over the
