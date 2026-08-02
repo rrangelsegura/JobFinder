@@ -20,6 +20,7 @@ describe("App", () => {
     mockedUseSession.mockReturnValue({
       candidateId: 1,
       email: "candidate@example.com",
+      emailVerified: true,
       isAuthenticated: true,
       isLoading: false,
     })

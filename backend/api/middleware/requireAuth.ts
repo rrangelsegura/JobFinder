@@ -1,9 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import { getSession, SESSION_COOKIE_NAME } from "../lib/session";
+import { prisma } from "../prisma";
 
 const UNAUTHORIZED_BODY = {
   status: "error" as const,
   data: { error: "Not authenticated." },
+};
+
+// Distinct from UNAUTHORIZED_BODY/401: the session is valid (we know who
+// this is), they're just not allowed through yet.
+const EMAIL_NOT_VERIFIED_BODY = {
+  status: "error" as const,
+  data: { error: "Email not verified." },
 };
 
 // Rejecting before a request body (e.g. a multipart file upload) has been
@@ -28,6 +36,11 @@ async function rejectUnauthenticated(req: Request, res: Response): Promise<void>
   res.status(401).json(UNAUTHORIZED_BODY);
 }
 
+async function rejectUnverified(req: Request, res: Response): Promise<void> {
+  await drainRequest(req);
+  res.status(403).json(EMAIL_NOT_VERIFIED_BODY);
+}
+
 export async function requireAuth(
   req: Request,
   res: Response,
@@ -42,6 +55,16 @@ export async function requireAuth(
   const session = await getSession(sessionId);
   if (!session) {
     await rejectUnauthenticated(req, res);
+    return;
+  }
+
+  // candidate-email-verification: queried fresh on every request (not
+  // cached on the session) so verifying in one tab/session takes effect
+  // immediately for any other active session of the same candidate,
+  // instead of requiring a fresh login.
+  const candidate = await prisma.candidate.findUnique({ where: { id: session.candidateId } });
+  if (!candidate || !candidate.emailVerifiedAt) {
+    await rejectUnverified(req, res);
     return;
   }
 

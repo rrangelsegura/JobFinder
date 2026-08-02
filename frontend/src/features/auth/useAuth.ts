@@ -73,6 +73,33 @@ export function useLogin() {
   })
 }
 
+async function verifyEmail(token: string): Promise<void> {
+  await apiClient.post("/auth/verify-email", { token })
+}
+
+export function useVerifyEmail() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (token: string) => withBackendErrorMessage(verifyEmail(token)),
+    onSuccess: () => {
+      // Flips emailVerified to true for any observer of useSession() once
+      // this refetches (e.g. ProtectedRoute, if the candidate also happens
+      // to have an active session in this same browser).
+      queryClient.invalidateQueries({ queryKey: ["auth", "session"] })
+    },
+  })
+}
+
+async function resendVerification(email: string): Promise<void> {
+  await apiClient.post("/auth/resend-verification", { email })
+}
+
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: (email: string) => withBackendErrorMessage(resendVerification(email)),
+  })
+}
+
 async function logout(): Promise<void> {
   await apiClient.post("/auth/logout")
 }

@@ -2,12 +2,12 @@ import { useEffect } from "react"
 import { useAuthStore } from "@/stores/authStore"
 import type { SessionState, UseSession } from "./useSession.types"
 
-// Fixture shape matches US-003's documented `GET /auth/session` 200 response
-// (`{ candidateId, email }`) exactly. Update this the moment US-003's real
-// proposal/specs are written, per design.md's drift risk mitigation.
+// Fixture shape matches `GET /auth/session`'s documented 200 response
+// (`{ candidateId, email, emailVerified }`) exactly.
 export const MOCK_SESSION_FIXTURE = {
   candidateId: 1,
   email: "candidate@example.com",
+  emailVerified: true,
 } as const
 
 // Playwright E2E needs a real-browser way to exercise the "no active
@@ -20,6 +20,17 @@ function wantsUnauthenticatedMockSession(): boolean {
   return (
     new URLSearchParams(window.location.search).get("mockSession") ===
     "unauthenticated"
+  )
+}
+
+// candidate-email-verification: same escape-hatch pattern, one dimension
+// further — `?mockSession=unverified` exercises the "authenticated but not
+// yet verified" holding-page path without needing a real token/email flow.
+function wantsUnverifiedMockSession(): boolean {
+  if (typeof window === "undefined") return false
+  return (
+    new URLSearchParams(window.location.search).get("mockSession") ===
+    "unverified"
   )
 }
 
@@ -42,5 +53,9 @@ export const useSession: UseSession = (): SessionState => {
     )
   }, [setAuthenticated, setUnauthenticated])
 
-  return { candidateId, email, isAuthenticated, isLoading }
+  const emailVerified = isAuthenticated
+    ? !wantsUnverifiedMockSession() && MOCK_SESSION_FIXTURE.emailVerified
+    : null
+
+  return { candidateId, email, emailVerified, isAuthenticated, isLoading }
 }

@@ -18,3 +18,15 @@ export async function checkLoginRateLimit(key: string): Promise<boolean> {
   }
   return count <= MAX_ATTEMPTS;
 }
+
+// candidate-email-verification: same fixed-window pattern as
+// checkLoginRateLimit, own key namespace and threshold — /auth/resend-
+// verification is keyed by email only (unauthenticated by design).
+export async function checkResendVerificationRateLimit(email: string): Promise<boolean> {
+  const redisKey = `resend-verification-attempts:${email}`;
+  const count = await connection.incr(redisKey);
+  if (count === 1) {
+    await connection.expire(redisKey, WINDOW_SECONDS);
+  }
+  return count <= MAX_ATTEMPTS;
+}

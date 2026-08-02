@@ -43,7 +43,7 @@ describe("useSession.live", () => {
     mockedGet.mockResolvedValue({
       data: {
         status: "success",
-        data: { candidateId: 7, email: "candidate@example.com" },
+        data: { candidateId: 7, email: "candidate@example.com", emailVerified: true },
         agent_trace_id: "trace-1",
         model_used: null,
       },
@@ -64,6 +64,7 @@ describe("useSession.live", () => {
     expect(result.current).toEqual({
       candidateId: 7,
       email: "candidate@example.com",
+      emailVerified: true,
       isAuthenticated: true,
       isLoading: false,
     })
@@ -87,6 +88,7 @@ describe("useSession.live", () => {
     expect(result.current).toEqual({
       candidateId: null,
       email: null,
+      emailVerified: null,
       isAuthenticated: false,
       isLoading: false,
     })
