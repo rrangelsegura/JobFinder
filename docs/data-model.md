@@ -1,5 +1,5 @@
 ---
-description: Hybrid data model specification for JobFinder. Integrates the complete 15-entity relational ATS model with Agentic Memory, Vector domains for RAG, and non-deterministic state management.
+description: Hybrid data model specification for JobFinder. Integrates the complete 19-entity relational ATS model with Agentic Memory, Vector domains for RAG, and non-deterministic state management.
 globs:
   - "backend/prisma/schema.prisma"
   - "backend/agents/knowledge_base/**/*.py"
@@ -54,9 +54,42 @@ Represents work history and professional experience for candidates.
 - endDate: End date of the work experience (optional, null if current)
 - candidateId: Foreign key referencing the Candidate
 - **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (unbounded), Start date required.
-- **Relationships**: candidate (N:1).
+- **Relationships**: candidate (N:1), responsibilities (1:N), projects (1:N).
 
-**4. Resume**
+**4. WorkExperienceResponsibility**
+Represents a single role-level duty within a `WorkExperience`, distinct from a specific `Project`'s own achievements (see below). work-experience-detail: `description` alone gave the extraction pipeline nowhere structured to put this.
+- id: Unique identifier for the responsibility record (Primary Key)
+- text: The responsibility/duty text (unbounded length)
+- workExperienceId: Foreign key referencing the WorkExperience
+- **Validation Rules**: Text required. Deleted automatically when its `WorkExperience` is deleted (`onDelete: Cascade`).
+- **Relationships**: workExperience (N:1).
+
+**5. Project**
+Represents a specific initiative within a `WorkExperience` — distinct from the role's general responsibilities above.
+- id: Unique identifier for the project record (Primary Key)
+- name: Project name (max 150 characters)
+- description: Project description (optional, unbounded length)
+- workExperienceId: Foreign key referencing the WorkExperience
+- **Validation Rules**: Name required (max 150), description optional. Deleted automatically when its `WorkExperience` is deleted (`onDelete: Cascade`).
+- **Relationships**: workExperience (N:1), achievements (1:N), stack (1:N).
+
+**6. ProjectAchievement**
+Represents a single achievement/result for a specific `Project`.
+- id: Unique identifier for the achievement record (Primary Key)
+- text: The achievement text (unbounded length)
+- projectId: Foreign key referencing the Project
+- **Validation Rules**: Text required. Deleted automatically when its `Project` is deleted (`onDelete: Cascade`).
+- **Relationships**: project (N:1).
+
+**7. ProjectStackItem**
+Represents a single technology used on a specific `Project` — deliberately independent from `Skill` (CV-mined, per-project usage, not the candidate's self-reported aggregate skill list; no shared taxonomy).
+- id: Unique identifier for the stack item record (Primary Key)
+- name: Technology/tool name (max 100 characters)
+- projectId: Foreign key referencing the Project
+- **Validation Rules**: Name required (max 100). Deleted automatically when its `Project` is deleted (`onDelete: Cascade`).
+- **Relationships**: project (N:1).
+
+**8. Resume**
 Represents uploaded resume files associated with candidates.
 - id: Unique identifier for the resume record (Primary Key)
 - filePath: File system path to the uploaded resume (max 500 characters)
@@ -71,7 +104,7 @@ Represents uploaded resume files associated with candidates.
 - **Validation Rules**: File path required (max 500), File type required (max 50). Supported types: PDF and DOCX (max 10MB). All `extracted*` fields are optional — extraction may fail or a resume may omit a field.
 - **Relationships**: candidate (N:1).
 
-**5. Skill**
+**9. Skill**
 Represents a technical or soft skill extracted from a candidate's resume.
 - id: Unique identifier for the skill record (Primary Key)
 - name: Skill name, e.g. "Python", "Communication" (max 100 characters)
@@ -80,7 +113,7 @@ Represents a technical or soft skill extracted from a candidate's resume.
 - **Validation Rules**: Name required (max 100), type required (one of `technical`, `soft`). No maximum record count per candidate.
 - **Relationships**: candidate (N:1).
 
-**6. Language**
+**10. Language**
 Represents a language the candidate speaks, with optional proficiency.
 - id: Unique identifier for the language record (Primary Key)
 - name: Language name, e.g. "English", "Spanish" (max 50 characters)
@@ -89,7 +122,7 @@ Represents a language the candidate speaks, with optional proficiency.
 - **Validation Rules**: Name required (max 50), proficiency optional. No maximum record count per candidate.
 - **Relationships**: candidate (N:1).
 
-**7. Certification**
+**11. Certification**
 Represents a professional certification held by the candidate.
 - id: Unique identifier for the certification record (Primary Key)
 - name: Certification name (max 150 characters)
@@ -101,13 +134,13 @@ Represents a professional certification held by the candidate.
 
 ### 2.2 Recruitment & Company Entities
 
-**8. Company**
+**12. Company**
 Represents companies that post job positions and employ staff.
 - id: Unique identifier for the company (Primary Key)
 - name: Unique company name
 - **Relationships**: employees (1:N), positions (1:N).
 
-**9. Employee**
+**13. Employee**
 Represents employees within companies who can conduct interviews.
 - id: Unique identifier for the employee (Primary Key)
 - name: Employee's full name
@@ -117,20 +150,20 @@ Represents employees within companies who can conduct interviews.
 - companyId: Foreign key referencing the Company
 - **Relationships**: company (N:1), interviews (1:N).
 
-**10. InterviewType**
+**14. InterviewType**
 Defines different types of interviews that can be conducted.
 - id: Unique identifier for the interview type (Primary Key)
 - name: Name of the interview type (e.g., Technical, Behavioral, HR)
 - description: Detailed description of the interview type
 - **Relationships**: interviewSteps (1:N).
 
-**11. InterviewFlow**
+**15. InterviewFlow**
 Represents a sequence of interview steps for a specific hiring process.
 - id: Unique identifier for the interview flow (Primary Key)
 - description: Description of the flow's purpose and structure
 - **Relationships**: interviewSteps (1:N), positions (1:N).
 
-**12. InterviewStep**
+**16. InterviewStep**
 Represents a specific step within an interview flow.
 - id: Unique identifier for the interview step (Primary Key)
 - name: Name of the step (e.g., First Screening, Technical Panel)
@@ -139,7 +172,7 @@ Represents a specific step within an interview flow.
 - interviewTypeId: Foreign key referencing the InterviewType
 - **Relationships**: interviewFlow (N:1), interviewType (N:1), applications (1:N), interviews (1:N).
 
-**13. Position**
+**17. Position**
 Represents a job opening that candidates can apply for.
 - id: Unique identifier for the position (Primary Key)
 - title: Job title (max 200 characters)
@@ -161,7 +194,7 @@ Represents a job opening that candidates can apply for.
 - interviewFlowId: Foreign key referencing the InterviewFlow
 - **Relationships**: company (N:1), interviewFlow (N:1), applications (1:N).
 
-**14. Application**
+**18. Application**
 Represents a candidate's application for a specific position.
 - id: Unique identifier for the application (Primary Key)
 - applicationDate: Date and time of application
@@ -172,7 +205,7 @@ Represents a candidate's application for a specific position.
 - interviewStepId: Foreign key referencing the InterviewStep
 - **Relationships**: position (N:1), candidate (N:1), interviewStep (N:1), interviews (1:N).
 
-**15. Interview**
+**19. Interview**
 Represents individual interview sessions conducted as part of an application.
 - id: Unique identifier for the interview (Primary Key)
 - interviewDate: Date and time of the interview

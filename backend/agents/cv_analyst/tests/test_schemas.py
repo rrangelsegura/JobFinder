@@ -6,6 +6,7 @@ from agents.cv_analyst.schemas import (
     EducationEntry,
     LanguageEntry,
     PersonalInfo,
+    ProjectEntry,
     SkillEntry,
     SkillType,
     WorkExperienceEntry,
@@ -94,6 +95,56 @@ def test_certification_issue_date_accepts_year_month_only():
 def test_start_date_still_rejects_genuinely_invalid_values():
     with pytest.raises(ValueError):
         WorkExperienceEntry(company="Acme", position="Engineer", start_date="not a date")
+
+
+# work-experience-detail: responsibilities/projects give the LLM somewhere
+# structured to put role-level duties and specific initiatives, instead of
+# collapsing everything into `description` (which came back empty on a real
+# CV — see cv-upload-hardening's manual verification).
+def test_work_experience_accepts_responsibilities_and_projects():
+    entry = WorkExperienceEntry(
+        company="Acme",
+        position="Engineer",
+        start_date="2020-01-01",
+        responsibilities=["Led backend architecture", "Mentored junior engineers"],
+        projects=[
+            ProjectEntry(
+                name="Checkout Revamp",
+                description="Rebuilt the checkout flow",
+                achievements=["Cut cart abandonment by 15%"],
+                stack=["Python", "PostgreSQL"],
+            )
+        ],
+    )
+    assert entry.responsibilities == ["Led backend architecture", "Mentored junior engineers"]
+    assert len(entry.projects) == 1
+    assert entry.projects[0].name == "Checkout Revamp"
+
+
+def test_work_experience_responsibilities_and_projects_default_to_empty_lists():
+    entry = WorkExperienceEntry(company="Acme", position="Engineer", start_date="2020-01-01")
+    assert entry.responsibilities == []
+    assert entry.projects == []
+
+
+def test_project_entry_requires_only_name():
+    project = ProjectEntry(name="Internal Tooling")
+    assert project.name == "Internal Tooling"
+    assert project.description is None
+    assert project.achievements == []
+    assert project.stack == []
+
+
+def test_project_entry_accepts_full_shape():
+    project = ProjectEntry(
+        name="Data Pipeline",
+        description="Batch ETL pipeline",
+        achievements=["Reduced runtime by 40%", "Migrated to Airflow"],
+        stack=["Python", "Airflow", "Spark"],
+    )
+    assert project.description == "Batch ETL pipeline"
+    assert project.achievements == ["Reduced runtime by 40%", "Migrated to Airflow"]
+    assert project.stack == ["Python", "Airflow", "Spark"]
 
 
 # cv-upload-hardening: found on the SAME real CV, one layer deeper — after

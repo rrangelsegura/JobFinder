@@ -108,6 +108,28 @@ def test_extraction_example_shows_education_repeated_at_least_twice():
     assert len(extraction_service._EXAMPLE_RESULT.education) >= 2
 
 
+# work-experience-detail: same repetition-degradation risk one layer deeper
+# again — responsibilities/projects/achievements/stack are new nested lists
+# the model has never been shown before. A shallow worked example (1 project,
+# 1 achievement) would collapse the same way skills/education did on a real
+# CV with more items than the example demonstrates.
+def test_extraction_example_shows_work_experience_with_multiple_projects():
+    work_experience = extraction_service._EXAMPLE_RESULT.work_experience
+    assert len(work_experience) >= 2
+
+    entries_with_projects = [w for w in work_experience if len(w.projects) >= 2]
+    assert entries_with_projects, "at least one work experience entry must show 2+ projects"
+
+    for project in entries_with_projects[0].projects:
+        assert len(project.achievements) >= 2
+        assert len(project.stack) >= 2
+
+
+def test_extraction_example_shows_responsibilities_on_a_work_experience_entry():
+    work_experience = extraction_service._EXAMPLE_RESULT.work_experience
+    assert any(len(w.responsibilities) >= 2 for w in work_experience)
+
+
 # cv-upload-hardening: _call_ollama never set num_ctx, so Ollama defaulted to
 # 2048 tokens even though llama3:8b supports 8192 — observed for real to
 # collapse the retry output entirely on a large resume.

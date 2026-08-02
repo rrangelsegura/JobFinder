@@ -1,17 +1,31 @@
 jest.mock("../prisma", () => ({
   prisma: {
     resume: { update: jest.fn() },
-    education: { createMany: jest.fn() },
-    workExperience: { createMany: jest.fn() },
-    skill: { createMany: jest.fn() },
-    language: { createMany: jest.fn() },
-    certification: { createMany: jest.fn() },
+    education: { createMany: jest.fn(), deleteMany: jest.fn() },
+    workExperience: { create: jest.fn(), deleteMany: jest.fn() },
+    workExperienceResponsibility: { createMany: jest.fn() },
+    project: { create: jest.fn() },
+    projectAchievement: { createMany: jest.fn() },
+    projectStackItem: { createMany: jest.fn() },
+    skill: { createMany: jest.fn(), deleteMany: jest.fn() },
+    language: { createMany: jest.fn(), deleteMany: jest.fn() },
+    certification: { createMany: jest.fn(), deleteMany: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
 
 import { prisma } from "../prisma";
 import { processCvExtractionJob } from "./cvExtractionProcessor";
+
+// The real cvExtractionProcessor.ts uses the interactive transaction form
+// (`$transaction(async (tx) => {...})`), not the old sequential-array form —
+// tests mock $transaction to invoke the callback with `prisma` itself as
+// `tx`, so assertions against `prisma.<model>.<method>` still work.
+function mockTransactionInvokesCallbackWithPrismaAsTx() {
+  (prisma.$transaction as jest.Mock).mockImplementation(async (callback: (tx: unknown) => unknown) =>
+    callback(prisma)
+  );
+}
 
 const SUCCESS_RESPONSE = {
   personal_info: {
@@ -25,7 +39,14 @@ const SUCCESS_RESPONSE = {
     { institution: "Cambridge", title: "Mathematics", start_date: "1840-01-01", end_date: null },
   ],
   work_experience: [
-    { company: "Analytical Engines Ltd", position: "Analyst", start_date: "1842-01-01", end_date: null },
+    {
+      company: "Analytical Engines Ltd",
+      position: "Analyst",
+      start_date: "1842-01-01",
+      end_date: null,
+      responsibilities: [],
+      projects: [],
+    },
   ],
   skills: [{ name: "Python", type: "technical" }],
   languages: [{ name: "English", proficiency: null }],
@@ -47,7 +68,14 @@ describe("processCvExtractionJob", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (prisma.$transaction as jest.Mock).mockResolvedValue([]);
+    mockTransactionInvokesCallbackWithPrismaAsTx();
+    (prisma.workExperience.create as jest.Mock).mockImplementation(
+      async (args: { data: Record<string, unknown> }) => ({ id: 501, ...args.data })
+    );
+    (prisma.project.create as jest.Mock).mockImplementation(async (args: { data: Record<string, unknown> }) => ({
+      id: 601,
+      ...args.data,
+    }));
   });
 
   afterEach(() => {
@@ -117,6 +145,144 @@ describe("processCvExtractionJob", () => {
     await processCvExtractionJob(buildJob());
 
     expect(prisma.certification.createMany).not.toHaveBeenCalled();
+  });
+
+  // work-experience-detail: responsibilities are role-level, so they persist
+  // linked to the WorkExperience row's own generated id.
+  it("persists a work experience entry's responsibilities linked to the correct workExperienceId", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...SUCCESS_RESPONSE,
+        work_experience: [
+          {
+            company: "Analytical Engines Ltd",
+            position: "Analyst",
+            start_date: "1842-01-01",
+            end_date: null,
+            responsibilities: ["Designed the analytical engine", "Wrote the first algorithm"],
+            projects: [],
+          },
+        ],
+      }),
+    }) as any;
+
+    await processCvExtractionJob(buildJob({ candidateId: 42 }));
+
+    expect(prisma.workExperience.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ company: "Analytical Engines Ltd", candidateId: 42 }),
+      })
+    );
+    expect(prisma.workExperienceResponsibility.createMany).toHaveBeenCalledWith({
+      data: [
+        { text: "Designed the analytical engine", workExperienceId: 501 },
+        { text: "Wrote the first algorithm", workExperienceId: 501 },
+      ],
+    });
+  });
+
+  // work-experience-detail: a project's achievements/stack persist linked to
+  // the Project row's own generated id, which itself is linked to its parent
+  // WorkExperience's generated id — two levels of id-chaining, the reason
+  // this needed the interactive transaction form.
+  it("persists a work experience entry's projects, achievements, and stack linked to the correct ids", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...SUCCESS_RESPONSE,
+        work_experience: [
+          {
+            company: "Analytical Engines Ltd",
+            position: "Analyst",
+            start_date: "1842-01-01",
+            end_date: null,
+            responsibilities: [],
+            projects: [
+              {
+                name: "Difference Engine Notes",
+                description: "Annotated Menabrea's memoir",
+                achievements: ["Published the first algorithm intended for a machine"],
+                stack: ["Analytical Engine"],
+              },
+            ],
+          },
+        ],
+      }),
+    }) as any;
+
+    await processCvExtractionJob(buildJob());
+
+    expect(prisma.project.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ name: "Difference Engine Notes", workExperienceId: 501 }),
+      })
+    );
+    expect(prisma.projectAchievement.createMany).toHaveBeenCalledWith({
+      data: [{ text: "Published the first algorithm intended for a machine", projectId: 601 }],
+    });
+    expect(prisma.projectStackItem.createMany).toHaveBeenCalledWith({
+      data: [{ name: "Analytical Engine", projectId: 601 }],
+    });
+  });
+
+  it("creates no responsibility/project rows for a work experience with neither", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => SUCCESS_RESPONSE, // work_experience entry has no responsibilities/projects fields
+    }) as any;
+
+    await processCvExtractionJob(buildJob());
+
+    expect(prisma.workExperienceResponsibility.createMany).not.toHaveBeenCalled();
+    expect(prisma.project.create).not.toHaveBeenCalled();
+    expect(prisma.projectAchievement.createMany).not.toHaveBeenCalled();
+    expect(prisma.projectStackItem.createMany).not.toHaveBeenCalled();
+  });
+
+  // Atomicity: a failure partway through the transaction must stop
+  // subsequent writes from happening at all.
+  it("stops persisting further records once a write in the transaction fails", async () => {
+    (prisma.workExperience.create as jest.Mock).mockRejectedValue(new Error("db exploded"));
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => SUCCESS_RESPONSE,
+    }) as any;
+
+    await expect(processCvExtractionJob(buildJob())).rejects.toThrow("db exploded");
+
+    expect(prisma.skill.createMany).not.toHaveBeenCalled();
+    expect(prisma.language.createMany).not.toHaveBeenCalled();
+  });
+
+  // work-experience-detail: re-processing replaces a candidate's prior
+  // structured data rather than accumulating duplicates (candidateId is the
+  // only linking key across resumes today).
+  it("deletes the candidate's prior structured records before inserting the fresh extraction", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => SUCCESS_RESPONSE,
+    }) as any;
+
+    await processCvExtractionJob(buildJob({ candidateId: 42 }));
+
+    expect(prisma.workExperience.deleteMany).toHaveBeenCalledWith({ where: { candidateId: 42 } });
+    expect(prisma.education.deleteMany).toHaveBeenCalledWith({ where: { candidateId: 42 } });
+    expect(prisma.skill.deleteMany).toHaveBeenCalledWith({ where: { candidateId: 42 } });
+    expect(prisma.language.deleteMany).toHaveBeenCalledWith({ where: { candidateId: 42 } });
+    expect(prisma.certification.deleteMany).toHaveBeenCalledWith({ where: { candidateId: 42 } });
+  });
+
+  it("never deletes prior records when the agent call itself fails", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ detail: { error: "LLM output failed schema validation after one retry", stage: "llm" } }),
+    }) as any;
+
+    await expect(processCvExtractionJob(buildJob())).rejects.toThrow();
+
+    expect(prisma.workExperience.deleteMany).not.toHaveBeenCalled();
   });
 
   // Spec: "on an OCR/LLM failure response from Python, the job is marked failed

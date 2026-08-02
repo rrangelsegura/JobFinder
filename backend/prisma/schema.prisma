@@ -64,7 +64,62 @@ model WorkExperience {
   candidateId Int
   candidate   Candidate @relation(fields: [candidateId], references: [id])
 
+  responsibilities WorkExperienceResponsibility[]
+  projects         Project[]
+
   @@map("work_experiences")
+}
+
+// work-experience-detail: role-level duties, distinct from a specific
+// Project's own achievements/stack below.
+model WorkExperienceResponsibility {
+  id   Int    @id @default(autoincrement())
+  text String
+
+  workExperienceId Int
+  workExperience   WorkExperience @relation(fields: [workExperienceId], references: [id], onDelete: Cascade)
+
+  @@map("work_experience_responsibilities")
+}
+
+// work-experience-detail: a specific initiative within a WorkExperience,
+// carrying its own achievements and tech stack — distinct from the role's
+// general responsibilities above.
+model Project {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(150)
+  description String?
+
+  workExperienceId Int
+  workExperience   WorkExperience @relation(fields: [workExperienceId], references: [id], onDelete: Cascade)
+
+  achievements ProjectAchievement[]
+  stack        ProjectStackItem[]
+
+  @@map("projects")
+}
+
+model ProjectAchievement {
+  id   Int    @id @default(autoincrement())
+  text String
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_achievements")
+}
+
+// Deliberately independent from Skill — this is CV-mined, per-project
+// technology usage, not the candidate's self-reported aggregate skill list.
+// No shared taxonomy; kept as simple as Skill.name itself.
+model ProjectStackItem {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(100)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_stack_items")
 }
 
 model Resume {

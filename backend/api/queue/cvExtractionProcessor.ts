@@ -1,5 +1,4 @@
 import { Job } from "bullmq";
-import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
 import { CvExtractionJobData } from "./cvExtractionQueue";
 
@@ -20,12 +19,21 @@ interface EducationEntry {
   end_date?: string | null;
 }
 
+interface ProjectEntry {
+  name: string;
+  description?: string | null;
+  achievements: string[];
+  stack: string[];
+}
+
 interface WorkExperienceEntry {
   company: string;
   position: string;
   description?: string | null;
   start_date: string;
   end_date?: string | null;
+  responsibilities: string[];
+  projects: ProjectEntry[];
 }
 
 interface SkillEntry {
@@ -85,17 +93,32 @@ async function callAgent(data: CvExtractionJobData): Promise<CvExtractionResult>
  * returns structured, validated data over REST. This worker is the only piece
  * that persists it, via a single transaction so a partial failure never
  * leaves the candidate with some-but-not-all extracted records.
+ *
+ * work-experience-detail: uses Prisma's interactive transaction form, not the
+ * old sequential-array form — WorkExperience and Project rows must be
+ * created individually (not via createMany) so their generated ids can be
+ * used by their own children (Project needs its parent WorkExperience's id;
+ * ProjectAchievement/ProjectStackItem need their parent Project's id).
+ *
+ * The delete-then-insert below runs unconditionally, inside this same
+ * transaction, for every job — not just re-processing runs. A first-time
+ * extraction has nothing to delete (deleteMany on a candidateId with no rows
+ * is a no-op), so one code path correctly handles both "new candidate" and
+ * "re-processing an already-extracted candidate" without branching. Because
+ * it's inside the transaction, a failed extraction never leaves a candidate
+ * with prior data deleted and nothing to replace it — the delete only takes
+ * effect if the whole transaction (including every insert below) succeeds.
  */
 export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Promise<CvExtractionResult> {
   const { candidateId, resumeId } = job.data;
   const result = await callAgent(job.data);
 
-  // Personal info goes on the Resume, not the Candidate — Candidate.email is
-  // the login credential and must never be silently rewritten by resume
-  // content (candidates may hold several resumes reporting different or no
-  // contact info).
-  const operations: Prisma.PrismaPromise<unknown>[] = [
-    prisma.resume.update({
+  await prisma.$transaction(async (tx) => {
+    // Personal info goes on the Resume, not the Candidate — Candidate.email
+    // is the login credential and must never be silently rewritten by resume
+    // content (candidates may hold several resumes reporting different or no
+    // contact info).
+    await tx.resume.update({
       where: { id: resumeId },
       data: {
         extractedFirstName: result.personal_info.first_name,
@@ -104,12 +127,22 @@ export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Pro
         extractedPhone: result.personal_info.phone ?? null,
         extractedAddress: result.personal_info.address ?? null,
       },
-    }),
-  ];
+    });
 
-  if (result.education.length > 0) {
-    operations.push(
-      prisma.education.createMany({
+    // Replace, don't accumulate: WorkExperience/Education/Skill/Language/
+    // Certification are keyed to candidateId, not resumeId, so re-running
+    // extraction without this would duplicate everything. Deleting
+    // WorkExperience cascades (DB-level onDelete: Cascade) to its
+    // WorkExperienceResponsibility/Project rows, and Project cascades to its
+    // ProjectAchievement/ProjectStackItem rows.
+    await tx.workExperience.deleteMany({ where: { candidateId } });
+    await tx.education.deleteMany({ where: { candidateId } });
+    await tx.skill.deleteMany({ where: { candidateId } });
+    await tx.language.deleteMany({ where: { candidateId } });
+    await tx.certification.deleteMany({ where: { candidateId } });
+
+    if (result.education.length > 0) {
+      await tx.education.createMany({
         data: result.education.map((e) => ({
           institution: e.institution,
           title: e.title,
@@ -117,59 +150,77 @@ export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Pro
           endDate: e.end_date ? new Date(e.end_date) : null,
           candidateId,
         })),
-      })
-    );
-  }
+      });
+    }
 
-  if (result.work_experience.length > 0) {
-    operations.push(
-      prisma.workExperience.createMany({
-        data: result.work_experience.map((w) => ({
+    for (const w of result.work_experience) {
+      const workExperience = await tx.workExperience.create({
+        data: {
           company: w.company,
           position: w.position,
           description: w.description ?? null,
           startDate: new Date(w.start_date),
           endDate: w.end_date ? new Date(w.end_date) : null,
           candidateId,
-        })),
-      })
-    );
-  }
+        },
+      });
 
-  if (result.skills.length > 0) {
-    operations.push(
-      prisma.skill.createMany({
+      if (w.responsibilities.length > 0) {
+        await tx.workExperienceResponsibility.createMany({
+          data: w.responsibilities.map((text) => ({ text, workExperienceId: workExperience.id })),
+        });
+      }
+
+      for (const p of w.projects) {
+        const project = await tx.project.create({
+          data: {
+            name: p.name,
+            description: p.description ?? null,
+            workExperienceId: workExperience.id,
+          },
+        });
+
+        if (p.achievements.length > 0) {
+          await tx.projectAchievement.createMany({
+            data: p.achievements.map((text) => ({ text, projectId: project.id })),
+          });
+        }
+
+        if (p.stack.length > 0) {
+          await tx.projectStackItem.createMany({
+            data: p.stack.map((name) => ({ name, projectId: project.id })),
+          });
+        }
+      }
+    }
+
+    if (result.skills.length > 0) {
+      await tx.skill.createMany({
         data: result.skills.map((s) => ({ name: s.name, type: s.type, candidateId })),
-      })
-    );
-  }
+      });
+    }
 
-  if (result.languages.length > 0) {
-    operations.push(
-      prisma.language.createMany({
+    if (result.languages.length > 0) {
+      await tx.language.createMany({
         data: result.languages.map((l) => ({
           name: l.name,
           proficiency: l.proficiency ?? null,
           candidateId,
         })),
-      })
-    );
-  }
+      });
+    }
 
-  if (result.certifications.length > 0) {
-    operations.push(
-      prisma.certification.createMany({
+    if (result.certifications.length > 0) {
+      await tx.certification.createMany({
         data: result.certifications.map((c) => ({
           name: c.name,
           issuer: c.issuer ?? null,
           issueDate: c.issue_date ? new Date(c.issue_date) : null,
           candidateId,
         })),
-      })
-    );
-  }
-
-  await prisma.$transaction(operations);
+      });
+    }
+  });
 
   return result;
 }
