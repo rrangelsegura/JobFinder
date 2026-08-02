@@ -114,6 +114,15 @@ class ProjectEntry(BaseModel):
     stack: list[str] = Field(default_factory=list)
 
 
+# cv-extraction-multi-call: isolated response shape for the per-job detail
+# call, which extracts only one work experience entry's responsibilities and
+# projects at a time (see design.md) — kept separate from WorkExperienceEntry
+# since the detail call never produces company/position/dates/description.
+class WorkExperienceDetailResult(BaseModel):
+    responsibilities: list[str] = Field(default_factory=list)
+    projects: list[ProjectEntry] = Field(default_factory=list)
+
+
 class WorkExperienceEntry(BaseModel):
     company: str
     position: str
@@ -127,6 +136,24 @@ class WorkExperienceEntry(BaseModel):
     # verification.
     responsibilities: list[str] = Field(default_factory=list)
     projects: list[ProjectEntry] = Field(default_factory=list)
+
+    _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)
+
+
+# cv-extraction-multi-call: the flat call's target type for a job — no
+# `responsibilities`/`projects` fields at all (unlike WorkExperienceEntry).
+# Found via real-CV verification: even with those fields removed from the
+# flat prompt/example, the LLM still spontaneously emits a "projects" key
+# (as a flat string list) for jobs the resume describes as having named
+# projects. Rather than rely on the prompt alone to suppress this, omitting
+# the fields here means Pydantic's default extra='ignore' behavior silently
+# drops them instead of failing schema validation.
+class FlatWorkExperienceEntry(BaseModel):
+    company: str
+    position: str
+    description: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
 
     _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)
 
@@ -161,6 +188,19 @@ class CvExtractionResult(BaseModel):
     personal_info: PersonalInfo
     education: list[EducationEntry] = Field(default_factory=list)
     work_experience: list[WorkExperienceEntry] = Field(default_factory=list)
+    skills: list[SkillEntry] = Field(default_factory=list)
+    languages: list[LanguageEntry] = Field(default_factory=list)
+    certifications: list[CertificationEntry] = Field(default_factory=list)
+
+
+# cv-extraction-multi-call: the flat call's overall target — identical to
+# CvExtractionResult except work_experience uses FlatWorkExperienceEntry
+# (no responsibilities/projects fields), so those get silently dropped if
+# the LLM emits them anyway rather than failing validation.
+class CvExtractionFlatResult(BaseModel):
+    personal_info: PersonalInfo
+    education: list[EducationEntry] = Field(default_factory=list)
+    work_experience: list[FlatWorkExperienceEntry] = Field(default_factory=list)
     skills: list[SkillEntry] = Field(default_factory=list)
     languages: list[LanguageEntry] = Field(default_factory=list)
     certifications: list[CertificationEntry] = Field(default_factory=list)

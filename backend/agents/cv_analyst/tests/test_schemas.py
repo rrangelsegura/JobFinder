@@ -2,13 +2,16 @@ import pytest
 
 from agents.cv_analyst.schemas import (
     CertificationEntry,
+    CvExtractionFlatResult,
     CvExtractionResult,
     EducationEntry,
+    FlatWorkExperienceEntry,
     LanguageEntry,
     PersonalInfo,
     ProjectEntry,
     SkillEntry,
     SkillType,
+    WorkExperienceDetailResult,
     WorkExperienceEntry,
 )
 
@@ -133,6 +136,52 @@ def test_project_entry_requires_only_name():
     assert project.description is None
     assert project.achievements == []
     assert project.stack == []
+
+
+# cv-extraction-multi-call: found via real-CV verification — even with
+# responsibilities/projects removed from the flat call's prompt/example, the
+# LLM still spontaneously emits a "projects" key (as a flat string list) for
+# jobs the resume clearly describes as having named projects. Rather than
+# rely on the prompt alone to suppress this, FlatWorkExperienceEntry has no
+# `projects`/`responsibilities` fields at all, so Pydantic's default
+# extra='ignore' behavior silently drops them instead of failing validation.
+def test_flat_work_experience_entry_silently_ignores_hallucinated_projects_field():
+    entry = FlatWorkExperienceEntry(
+        company="Acme",
+        position="Engineer",
+        start_date="2020-01-01",
+        projects=["Some project name", "Another project"],
+        responsibilities=["Led a team"],
+    )
+    assert not hasattr(entry, "projects")
+    assert not hasattr(entry, "responsibilities")
+
+
+def test_cv_extraction_flat_result_accepts_work_experience_without_detail_fields():
+    result = CvExtractionFlatResult(
+        personal_info=PersonalInfo(first_name="Ada", last_name="Lovelace", email="ada@example.com"),
+        work_experience=[FlatWorkExperienceEntry(company="Acme", position="Engineer", start_date="2020-01-01")],
+    )
+    assert result.work_experience[0].company == "Acme"
+
+
+# cv-extraction-multi-call: isolated response shape for the per-job detail
+# call — same fields as WorkExperienceEntry's responsibilities/projects, but
+# standalone since this call never sees company/position/dates/description.
+def test_work_experience_detail_result_defaults_to_empty_lists():
+    detail = WorkExperienceDetailResult()
+    assert detail.responsibilities == []
+    assert detail.projects == []
+
+
+def test_work_experience_detail_result_accepts_full_shape():
+    detail = WorkExperienceDetailResult(
+        responsibilities=["Led backend architecture"],
+        projects=[ProjectEntry(name="Checkout Revamp", achievements=["Cut abandonment by 15%"], stack=["Python"])],
+    )
+    assert detail.responsibilities == ["Led backend architecture"]
+    assert len(detail.projects) == 1
+    assert detail.projects[0].name == "Checkout Revamp"
 
 
 def test_project_entry_accepts_full_shape():
