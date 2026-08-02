@@ -107,12 +107,26 @@ class EducationEntry(BaseModel):
     _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)
 
 
+class ProjectEntry(BaseModel):
+    name: str
+    description: Optional[str] = None
+    achievements: list[str] = Field(default_factory=list)
+    stack: list[str] = Field(default_factory=list)
+
+
 class WorkExperienceEntry(BaseModel):
     company: str
     position: str
     description: Optional[str] = None
     start_date: date
     end_date: Optional[date] = None
+    # work-experience-detail: role-level duties (responsibilities) vs.
+    # specific initiatives with their own achievements/stack (projects) —
+    # `description` alone gave the LLM nowhere structured to put either,
+    # and came back empty on a real CV during cv-upload-hardening's manual
+    # verification.
+    responsibilities: list[str] = Field(default_factory=list)
+    projects: list[ProjectEntry] = Field(default_factory=list)
 
     _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)
 

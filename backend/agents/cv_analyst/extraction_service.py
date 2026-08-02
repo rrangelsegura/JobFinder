@@ -17,6 +17,7 @@ from .schemas import (
     EducationEntry,
     LanguageEntry,
     PersonalInfo,
+    ProjectEntry,
     SkillEntry,
     SkillType,
     WorkExperienceEntry,
@@ -51,7 +52,39 @@ _EXAMPLE_RESULT = CvExtractionResult(
             description="Built internal tools",
             start_date="2019-07-01",
             end_date=None,
-        )
+            responsibilities=[
+                "Led backend architecture for the internal tools team",
+                "Mentored two junior engineers",
+            ],
+            projects=[
+                ProjectEntry(
+                    name="Checkout Revamp",
+                    description="Rebuilt the checkout flow for reliability",
+                    achievements=[
+                        "Cut cart abandonment by 15%",
+                        "Reduced checkout latency from 2s to 400ms",
+                    ],
+                    stack=["Python", "PostgreSQL"],
+                ),
+                ProjectEntry(
+                    name="Internal Analytics Dashboard",
+                    description="Built a dashboard for support metrics",
+                    achievements=[
+                        "Adopted by 3 other teams",
+                        "Cut manual reporting time by 5 hours/week",
+                    ],
+                    stack=["React", "TypeScript"],
+                ),
+            ],
+        ),
+        WorkExperienceEntry(
+            company="Globex Inc",
+            position="Junior Developer",
+            description="Maintained a legacy billing system",
+            start_date="2017-06-01",
+            end_date="2019-06-01",
+            responsibilities=["Fixed production bugs in the billing pipeline"],
+        ),
     ],
     skills=[
         SkillEntry(name="Python", type=SkillType.technical),
@@ -113,11 +146,16 @@ def _build_extraction_prompt(resume_text: str) -> str:
         "text below. Return ONLY JSON, with EXACTLY this flat structure "
         "(this is a worked example with placeholder data, not the real "
         "candidate — match its shape exactly, especially that each skill is "
-        'a flat {"name": ..., "type": ...} object, not nested). This applies '
-        "regardless of how many items are in a list — even with many "
-        "skills, languages, education entries, or jobs, every single one "
-        "keeps the exact same field names and shape as the example (e.g. "
-        'every education entry uses "institution"/"title", never "name"):\n\n'
+        'a flat {"name": ..., "type": ...} object, not nested). For each job, '
+        'extract its general duties into "responsibilities" (a list of short '
+        'strings) separately from any specific initiatives into "projects" — '
+        "each project is its own object with its own name, description, "
+        'achievements, and stack, NOT text folded into the job\'s single '
+        '"description" field. This applies regardless of how many items are '
+        "in a list — even with many skills, languages, education entries, "
+        "jobs, or projects within a job, every single one keeps the exact "
+        'same field names and shape as the example (e.g. every education '
+        'entry uses "institution"/"title", never "name"):\n\n'
         f"{example}\n\n"
         "Omit fields you cannot find; use empty lists for missing sections. "
         "For an ongoing education or job with no end date, omit end_date "
