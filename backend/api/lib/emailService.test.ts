@@ -4,7 +4,7 @@ jest.mock("nodemailer", () => ({
   createTransport: jest.fn().mockReturnValue({ sendMail: mockSendMail }),
 }));
 
-import { sendCvUploadReminderEmail, sendExtractionFailureEmail } from "./emailService";
+import { sendCvUploadReminderEmail, sendExtractionFailureEmail, sendVerificationEmail } from "./emailService";
 
 describe("sendCvUploadReminderEmail", () => {
   beforeEach(() => {
@@ -41,5 +41,23 @@ describe("sendExtractionFailureEmail", () => {
     expect(message.text.toLowerCase()).not.toMatch(/try again/);
     expect(message.text.toLowerCase()).toMatch(/on our (end|side)|our (bug|issue|mistake)/);
     expect(message.text.toLowerCase()).toMatch(/notify|let you know|email you/);
+  });
+});
+
+describe("sendVerificationEmail", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("sends exactly one email with a link containing the token", async () => {
+    mockSendMail.mockResolvedValue({ messageId: "abc" });
+
+    await sendVerificationEmail("candidate@example.com", "the-token-value");
+
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+    const [message] = mockSendMail.mock.calls[0];
+    expect(message.to).toBe("candidate@example.com");
+    expect(message.text).toContain("the-token-value");
+    expect(message.text.toLowerCase()).toMatch(/verify/);
   });
 });

@@ -7,7 +7,7 @@ import type { SessionState, UseSession } from "./useSession.types"
 
 interface SessionResponse {
   status: "success"
-  data: { candidateId: number; email: string }
+  data: { candidateId: number; email: string; emailVerified: boolean }
   agent_trace_id: string
   model_used: string | null
 }
@@ -59,6 +59,7 @@ export const useSession: UseSession = (): SessionState => {
     return {
       candidateId: query.data.candidateId,
       email: query.data.email,
+      emailVerified: query.data.emailVerified,
       isAuthenticated: true,
       isLoading: query.isLoading,
     }
@@ -67,6 +68,7 @@ export const useSession: UseSession = (): SessionState => {
   return {
     candidateId: null,
     email: null,
+    emailVerified: null,
     isAuthenticated: false,
     isLoading: query.isLoading,
   }

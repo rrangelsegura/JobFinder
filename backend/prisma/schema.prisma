@@ -26,6 +26,12 @@ model Candidate {
   address      String? @db.VarChar(100)
   passwordHash String  @db.VarChar(255)
 
+  // candidate-email-verification: null until the candidate proves they own
+  // this address by clicking the link in the verification email. requireAuth
+  // gates every protected route on this being set, not just on having a
+  // valid session — this is the first timestamp field Candidate has.
+  emailVerifiedAt DateTime?
+
   educations      Education[]
   workExperiences WorkExperience[]
   resumes         Resume[]

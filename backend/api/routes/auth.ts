@@ -2,14 +2,15 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { prisma } from "../prisma";
-import { sendCvUploadReminderEmail } from "../lib/emailService";
+import { sendCvUploadReminderEmail, sendVerificationEmail } from "../lib/emailService";
+import { createVerificationToken, consumeVerificationToken } from "../lib/emailVerificationToken";
 import {
   createSession,
   getSession,
   deleteSession,
   SESSION_COOKIE_NAME,
 } from "../lib/session";
-import { checkLoginRateLimit } from "../lib/rateLimiter";
+import { checkLoginRateLimit, checkResendVerificationRateLimit } from "../lib/rateLimiter";
 
 const GENERIC_LOGIN_ERROR = "Invalid email or password";
 
@@ -61,8 +62,13 @@ authRouter.post("/auth/register", async (req: Request, res: Response) => {
     },
   });
 
-  sendCvUploadReminderEmail(email).catch((err: unknown) => {
-    console.error("Failed to send CV upload reminder email:", err);
+  // candidate-email-verification: registration only sends the verification
+  // link — the CV-upload reminder now fires once that's confirmed (see
+  // POST /auth/verify-email below), since the candidate can't upload
+  // anything until then.
+  const token = await createVerificationToken(candidate.id);
+  sendVerificationEmail(email, token).catch((err: unknown) => {
+    console.error("Failed to send verification email:", err);
   });
 
   res.status(201).json({
@@ -71,6 +77,87 @@ authRouter.post("/auth/register", async (req: Request, res: Response) => {
     agent_trace_id: randomUUID(),
     model_used: null,
   });
+});
+
+authRouter.post("/auth/verify-email", async (req: Request, res: Response) => {
+  const { token } = req.body ?? {};
+
+  if (typeof token !== "string") {
+    res.status(400).json({
+      status: "error",
+      data: { error: "Invalid or expired verification link." },
+      agent_trace_id: randomUUID(),
+      model_used: null,
+    });
+    return;
+  }
+
+  const data = await consumeVerificationToken(token);
+  if (!data) {
+    res.status(400).json({
+      status: "error",
+      data: { error: "Invalid or expired verification link." },
+      agent_trace_id: randomUUID(),
+      model_used: null,
+    });
+    return;
+  }
+
+  const candidate = await prisma.candidate.update({
+    where: { id: data.candidateId },
+    data: { emailVerifiedAt: new Date() },
+  });
+
+  sendCvUploadReminderEmail(candidate.email).catch((err: unknown) => {
+    console.error("Failed to send CV upload reminder email:", err);
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {},
+    agent_trace_id: randomUUID(),
+    model_used: null,
+  });
+});
+
+authRouter.post("/auth/resend-verification", async (req: Request, res: Response) => {
+  const { email } = req.body ?? {};
+
+  const genericResponse = {
+    status: "success" as const,
+    data: { message: "If that email is registered and not yet verified, a new verification link has been sent." },
+    agent_trace_id: randomUUID(),
+    model_used: null,
+  };
+
+  if (typeof email !== "string") {
+    res.status(200).json(genericResponse);
+    return;
+  }
+
+  const allowed = await checkResendVerificationRateLimit(email);
+  if (!allowed) {
+    res.status(429).json({
+      status: "error",
+      data: { error: "Too many requests. Please try again later." },
+      agent_trace_id: randomUUID(),
+      model_used: null,
+    });
+    return;
+  }
+
+  // Anti-enumeration, same principle as generic login failures: whether the
+  // email is registered, already verified, or neither, the response is
+  // identical — only the side effect (sending a new email) differs.
+  const candidate = await prisma.candidate.findUnique({ where: { email } });
+  if (candidate && !candidate.emailVerifiedAt) {
+    const token = await createVerificationToken(candidate.id);
+    sendVerificationEmail(email, token).catch((err: unknown) => {
+      console.error("Failed to send verification email:", err);
+    });
+  }
+
+  res.status(200).json(genericResponse);
 });
 
 authRouter.post("/auth/login", async (req: Request, res: Response) => {
@@ -128,7 +215,7 @@ authRouter.post("/auth/login", async (req: Request, res: Response) => {
 
   res.status(200).json({
     status: "success",
-    data: { candidateId: candidate.id, email: candidate.email },
+    data: { candidateId: candidate.id, email: candidate.email, emailVerified: Boolean(candidate.emailVerifiedAt) },
     agent_trace_id: randomUUID(),
     model_used: null,
   });
@@ -164,7 +251,7 @@ authRouter.get("/auth/session", async (req: Request, res: Response) => {
 
   res.status(200).json({
     status: "success",
-    data: { candidateId: candidate.id, email: candidate.email },
+    data: { candidateId: candidate.id, email: candidate.email, emailVerified: Boolean(candidate.emailVerifiedAt) },
     agent_trace_id: randomUUID(),
     model_used: null,
   });

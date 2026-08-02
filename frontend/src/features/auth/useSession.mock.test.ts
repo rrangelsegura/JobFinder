@@ -20,6 +20,7 @@ describe("useSession.mock", () => {
     expect(result.current).toEqual({
       candidateId: MOCK_SESSION_FIXTURE.candidateId,
       email: MOCK_SESSION_FIXTURE.email,
+      emailVerified: MOCK_SESSION_FIXTURE.emailVerified,
       isAuthenticated: true,
       isLoading: false,
     })

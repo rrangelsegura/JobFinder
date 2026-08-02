@@ -13,6 +13,9 @@ jest.mock("../prisma", () => ({
     resume: {
       create: jest.fn(),
     },
+    candidate: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -43,8 +46,15 @@ function buildApp() {
   return app;
 }
 
+// candidate-email-verification: requireAuth now also checks
+// emailVerifiedAt — these tests are about upload behavior, not
+// verification, so default to a verified candidate.
 function authenticateAs(candidateId: number) {
   (getSession as jest.Mock).mockResolvedValue({ candidateId });
+  (prisma.candidate.findUnique as jest.Mock).mockResolvedValue({
+    id: candidateId,
+    emailVerifiedAt: new Date(),
+  });
 }
 
 describe("POST /uploads/cv", () => {

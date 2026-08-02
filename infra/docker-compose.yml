@@ -54,8 +54,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AGENT_CORE_URL: http://backend-agent:8000
-      SMTP_HOST: maildev
-      SMTP_PORT: 1025
+      # candidate-email-verification: SMTP_HOST/PORT deliberately NOT
+      # hardcoded here anymore — they used to silently override whatever
+      # backend/.env set (Docker Compose's `environment:` wins over
+      # `env_file:`), which defeated the whole point of making the
+      # transport env-driven (design.md Decision: MailDev default locally,
+      # Resend via env vars in a deployed environment). backend/.env is now
+      # the single source of truth for SMTP_* — it already defaults to
+      # MailDev on its own.
     ports:
       - "3000:3000"
     depends_on:

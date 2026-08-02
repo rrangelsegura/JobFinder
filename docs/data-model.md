@@ -30,7 +30,8 @@ Represents a job candidate who can apply for positions within the system.
 - phone: Candidate's phone number (optional, max 15 characters)
 - address: Candidate's address (optional, max 100 characters)
 - passwordHash: Bcrypt hash of the candidate's password (cost factor 12, max 255 characters). Never the plain-text password.
-- **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters; passwordHash is required, set at registration (`POST /auth/register`), never accepted or returned directly by any API response.
+- emailVerifiedAt: Timestamp when the candidate proved ownership of `email` by clicking their one-time verification link (optional, null until verified). `requireAuth` rejects every protected route with `403` while this is unset, regardless of session validity — see `candidate-authentication`'s "Session-Based Route Protection" requirement.
+- **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters; passwordHash is required, set at registration (`POST /auth/register`), never accepted or returned directly by any API response; emailVerifiedAt is optional, set only by `POST /auth/verify-email` consuming a valid one-time token.
 - **Relationships**: educations (1:N), workExperiences (1:N), resumes (1:N), applications (1:N), skills (1:N), languages (1:N), certifications (1:N).
 
 **2. Education**
