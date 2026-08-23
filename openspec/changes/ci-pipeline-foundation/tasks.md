@@ -35,16 +35,16 @@
 
 ## 5. Manual Endpoint Testing with curl — NOT APPLICABLE
 
-- [ ] 5.1 Marked N/A per `docs/openspec-tasks-mandatory-steps.md` traceability requirement: this change adds no new HTTP endpoint, only CI automation around existing code
+- [x] 5.1 Marked N/A per `docs/openspec-tasks-mandatory-steps.md` traceability requirement: this change adds no new HTTP endpoint, only CI automation around existing code
 
 ## 6. E2E Testing with Playwright MCP — NOT APPLICABLE
 
-- [ ] 6.1 Marked N/A: this change introduces no new user-facing UI workflow; running Playwright inside CI is explicitly deferred to `ci-e2e-pipeline` (epic change 3)
+- [x] 6.1 Marked N/A: this change introduces no new user-facing UI workflow; running Playwright inside CI is explicitly deferred to `ci-e2e-pipeline` (epic change 3)
 
 ## 7. Update Technical Documentation (MANDATORY)
 
-- [ ] 7.1 Update `docs/development_guide.md` to replace the "CI/CD pipeline is defined" placeholder with a description of the real workflow and how to read its results
-- [ ] 7.2 Add a short "Continuous Integration" note to the root `README.md` describing the pipeline and its current non-blocking status
+- [x] 7.1 Updated `docs/development_guide.md`, replacing the placeholder with the real workflow description
+- [x] 7.2 Added a "Continuous Integration" section to the root `README.md` with a job table and non-blocking status note
 
 ## 8. Close Out
 
