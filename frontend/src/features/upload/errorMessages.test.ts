@@ -28,10 +28,15 @@ describe("mapExtractionErrorToUserMessage", () => {
     "OCR failed for both Tesseract and Textract",
     "LLM output failed schema validation on both attempts",
     "Something exploded", // unrecognized error falls back to the same honest copy
-  ])("does not tell the candidate to just try again for a system-side failure (%s)", (rawError) => {
-    const message = mapExtractionErrorToUserMessage(rawError)
-    expect(message.toLowerCase()).not.toMatch(/try again/)
-    expect(message.toLowerCase()).toMatch(/on our (end|side)|our (bug|issue|mistake)/)
-    expect(message.toLowerCase()).toMatch(/notify|let you know|email you/)
-  })
+  ])(
+    "does not tell the candidate to just try again for a system-side failure (%s)",
+    (rawError) => {
+      const message = mapExtractionErrorToUserMessage(rawError)
+      expect(message.toLowerCase()).not.toMatch(/try again/)
+      expect(message.toLowerCase()).toMatch(
+        /on our (end|side)|our (bug|issue|mistake)/,
+      )
+      expect(message.toLowerCase()).toMatch(/notify|let you know|email you/)
+    },
+  )
 })

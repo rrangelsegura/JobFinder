@@ -37,7 +37,10 @@ export function VerifyEmailPage() {
             {verify.isSuccess && (
               <>
                 <p role="status">Your email is verified.</p>
-                <Link to="/login" className="text-sm text-muted-foreground underline">
+                <Link
+                  to="/login"
+                  className="text-sm text-muted-foreground underline"
+                >
                   Log in to continue
                 </Link>
               </>
@@ -61,8 +64,8 @@ export function VerifyEmailPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Check your inbox{email ? ` (${email})` : ""} for a verification link — you'll need it before you can use
-            JobFinder.
+            Check your inbox{email ? ` (${email})` : ""} for a verification link
+            — you'll need it before you can use JobFinder.
           </p>
           <Button
             onClick={() => email && resend.mutate(email)}
@@ -72,7 +75,8 @@ export function VerifyEmailPage() {
           </Button>
           {resend.isSuccess && (
             <p role="status" className="text-sm">
-              If that email is registered and not yet verified, a new link has been sent.
+              If that email is registered and not yet verified, a new link has
+              been sent.
             </p>
           )}
         </CardContent>

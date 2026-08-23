@@ -188,6 +188,8 @@ describe("UploadPage", () => {
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent(/success|complete/i),
     )
-    expect(screen.queryByText(/different from your account email/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/different from your account email/i),
+    ).not.toBeInTheDocument()
   })
 })

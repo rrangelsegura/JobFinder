@@ -85,7 +85,9 @@ describe("VerifyEmailPage", () => {
 
       renderPage("/verify-email")
 
-      expect(screen.getByRole("status")).toHaveTextContent(/new link has been sent/i)
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /new link has been sent/i,
+      )
     })
   })
 
@@ -121,7 +123,9 @@ describe("VerifyEmailPage", () => {
 
       renderPage("/verify-email?token=bad-token")
 
-      expect(screen.getByRole("alert")).toHaveTextContent(/invalid or has expired/i)
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /invalid or has expired/i,
+      )
     })
   })
 })
