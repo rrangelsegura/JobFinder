@@ -7,8 +7,15 @@
 
 - [x] 1.1 Runner host confirmed: the project owner's own development machine (see design.md) — no separate provisioning needed, install directly on it
 - [x] 1.2 Verified already installed on the runner host: Node v22.18.0, Python 3.11.9, Tesseract-OCR (`C:\Program Files\Tesseract-OCR\tesseract.exe`), Poppler (`pdftoppm` via winget), Ollama (`%LOCALAPPDATA%\Programs\Ollama\ollama.exe`) — nothing to install
-- [ ] 1.3 Register the machine as a GitHub Actions self-hosted runner for this repository (Settings → Actions → Runners → New self-hosted runner)
-- [ ] 1.4 Confirm the runner shows "Idle" in GitHub before proceeding
+- [x] 1.3 Registered as `LAP1RS-jobfinder` via `gh api` + `config.cmd` (repo confirmed public — GitHub's mandatory fork-PR approval gate for self-hosted runners accepted as sufficient mitigation, see design.md). Running interactively (`run.cmd`, not yet an OS service) for today's verification; installing as an auto-starting Windows service requires an elevated (Administrator) terminal — see follow-up note below
+- [x] 1.4 Confirmed via `gh api repos/rrangelsegura/JobFinder/actions/runners`: status "online", busy: false
+
+- [ ] 1.5 **Follow-up (owner action required):** install the runner as a persistent Windows service so it survives reboots/logout, from an elevated (Run as Administrator) PowerShell:
+  ```powershell
+  cd "$env:USERPROFILE\actions-runner-jobfinder"
+  .\config.cmd remove --token <fresh removal token from gh api>
+  .\config.cmd --url https://github.com/rrangelsegura/JobFinder --token <fresh registration token> --name "$env:COMPUTERNAME-jobfinder" --labels self-hosted,Windows,X64 --unattended --runasservice
+  ```
 
 ## 2. CI Workflow Authoring
 
