@@ -51,7 +51,8 @@ Per `docs/openspec-tasks-mandatory-steps.md`: this change adds no HTTP endpoint 
 
 **Decision confirmed:** the runner host is the project owner's own development machine (the same one running the local docker-compose stack). Consequence: CI only runs while this machine is on, and competes for CPU/RAM with local dev work — acceptable because CI is non-blocking in this change; revisit if `ci-branch-protection` makes an always-available runner a hard requirement.
 
+**Decision confirmed:** `npm ci`/`pip install` steps use the built-in `cache` option of `actions/setup-node` and `actions/setup-python` (keyed on the respective lockfiles). Free to add, no new infrastructure, meaningfully speeds up repeat runs on the same self-hosted runner.
+
 ## Open Questions
 
-- Should `npm ci`/`pip install` steps cache dependencies between runs (`actions/cache`) to speed up the self-hosted runner, or is a cold install acceptable given it's not gating merges yet?
-- Exact Ollama model(s) to pre-pull on the runner now, if any — or leave the Ollama install bare until `ci-e2e-pipeline` defines which model integration tests need.
+- Exact Ollama model(s) to pre-pull on the runner now, if any — or leave the Ollama install bare until `ci-e2e-pipeline` defines which model integration tests need. (Ollama is already installed on the host from prior local dev work; no model pull needed for this change since no test calls it.)

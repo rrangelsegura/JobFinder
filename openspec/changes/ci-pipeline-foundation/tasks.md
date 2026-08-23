@@ -12,21 +12,21 @@
 
 ## 2. CI Workflow Authoring
 
-- [ ] 2.1 Create `.github/workflows/ci.yml` triggered on `pull_request` (targeting `main`) and `push` (to `main`)
-- [ ] 2.2 Add `backend-node` job: checkout, setup Node 20, `npm ci`, `npm run build`, `npm test` — `working-directory: backend`
-- [ ] 2.3 Add `backend-python` job: checkout, setup Python 3.11, `pip install -r requirements.txt`, `pytest` — `working-directory: backend`
-- [ ] 2.4 Add `frontend` job: checkout, setup Node 20, `npm ci`, `npm run lint`, `npm run format:check`, `npm run build`, `npm test` — `working-directory: frontend`
-- [ ] 2.5 Set `runs-on` to the self-hosted runner label for all three jobs
-- [ ] 2.6 Confirm no job starts or depends on Postgres, Redis, ChromaDB, MailDev, or a real Ollama call
+- [x] 2.1 Create `.github/workflows/ci.yml` triggered on `pull_request` (targeting `main`) and `push` (to `main`)
+- [x] 2.2 Add `backend-node` job: checkout, setup Node 20, `npm ci`, `npm run build`, `npm test` — `working-directory: backend`
+- [x] 2.3 Add `backend-python` job: checkout, setup Python 3.11, `pip install -r requirements.txt`, `pytest` — `working-directory: backend`
+- [x] 2.4 Add `frontend` job: checkout, setup Node 20, `npm ci`, `npm run lint`, `npm run format:check`, `npm run build`, `npm test` — `working-directory: frontend`
+- [x] 2.5 Set `runs-on: [self-hosted]` for all three jobs
+- [x] 2.6 Confirmed: no `services:` block in any job, no dependency on Postgres/Redis/ChromaDB/MailDev/real Ollama
 
 ## 3. Review and Update Existing Unit Tests (MANDATORY)
 
-- [ ] 3.1 Confirm no changes are needed to the 32 existing test files — this change only adds automation around them
-- [ ] 3.2 Re-grep the suite at implementation time to confirm `ioredis` and `_call_ollama` are still mocked everywhere, so the "no live services" decision in design.md still holds
+- [x] 3.1 Confirmed: no changes needed to the 32 existing test files — this change only adds automation around them
+- [x] 3.2 Re-grepped at implementation time: `jest.mock("ioredis", ...)` still present in `rateLimiter.test.ts`/`session.test.ts`/`emailVerificationToken.test.ts`; `monkeypatch.setattr(extraction_service, "_call_ollama", ...)` still present (11 occurrences) in `test_extraction_service.py` — "no live services" decision still holds
 
 ## 4. Run Unit Tests and Verify Pipeline (MANDATORY)
 
-- [ ] 4.1 Run the full suite locally once before pushing (`npm test` in `backend/`, `pytest` in `backend/`, `npm test` in `frontend/`) and record baseline pass/fail counts
+- [x] 4.1 Baseline recorded locally: `npm test` backend/ = 11 suites / 71 tests passed (after `npx prisma generate`, which resolved a stale-client compile failure — a known project issue, no code change); `pytest` backend/ = 59 passed; `npm test` frontend/ = 15 files / 49 tests passed; `npm run build` (backend and frontend) both clean; `npm run lint` frontend = 0 errors (1 pre-existing warning); `npm run format:check` frontend now passes after a separate mechanical `prettier --write` fix (12 files, no logic change — see `style(frontend): apply prettier formatting` commit)
 - [ ] 4.2 Push the feature branch and open a PR against `main` to trigger the new workflow for the first time
 - [ ] 4.3 Confirm all three jobs (`backend-node`, `backend-python`, `frontend`) appear on the PR and complete
 - [ ] 4.4 Confirm the pipeline's pass/fail counts match the local baseline from 4.1
