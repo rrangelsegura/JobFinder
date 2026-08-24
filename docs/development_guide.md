@@ -116,7 +116,7 @@ poetry run pytest -s    # show stdout during tests
 
 ## 📦 Deployment
 
-Continuous integration is defined in `.github/workflows/ci.yml`: on every PR to `main` and every push to `main`, a self-hosted GitHub Actions runner executes three independent jobs — `backend-node` (build + Jest), `backend-python` (pytest), and `frontend` (lint + format check + build + Vitest). No live services (Postgres/Redis/ChromaDB/Ollama) are started; the suite mocks them. CI is currently informative only and does not block merges — see `openspec/changes/ci-pipeline-foundation/` for the full rationale and the planned follow-ups (branch protection, e2e-in-CI).
+Continuous integration is defined in `.github/workflows/ci.yml`: on every PR to `main` and every push to `main`, GitHub-hosted `ubuntu-latest` runners execute three independent jobs — `backend-node` (build + Jest), `backend-python` (pytest), and `frontend` (lint + format check + build + Vitest). No live services (Postgres/Redis/ChromaDB/Ollama) are started; the suite mocks them. CI is currently informative only and does not block merges — see `openspec/changes/ci-pipeline-foundation/` for the full rationale and the planned follow-ups (branch protection, e2e-in-CI).
 
 Deployment (as opposed to CI) is still undefined beyond local `docker compose up` — this section will be updated once that's addressed.
 

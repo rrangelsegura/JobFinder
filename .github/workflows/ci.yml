@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend-node:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
@@ -25,24 +25,22 @@ jobs:
       - run: npm test
 
   backend-python:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
-    env:
-      # actions/setup-python fails on this runner, and the ambient `python`
-      # on PATH resolves to an unrelated tool's venv without pip. Use the
-      # real Python 3.11 install directly and always work in a fresh,
-      # isolated venv — never the global site-packages.
-      PYTHON_EXE: C:\Users\Usuario\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\python.exe
     steps:
       - uses: actions/checkout@v4
-      - run: '& "$env:PYTHON_EXE" -m venv .venv-ci'
-      - run: .\.venv-ci\Scripts\python.exe -m pip install -r requirements.txt
-      - run: .\.venv-ci\Scripts\python.exe -m pytest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: pytest
 
   frontend:
-    runs-on: [self-hosted]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend

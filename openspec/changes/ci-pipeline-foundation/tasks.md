@@ -3,19 +3,10 @@
 - [x] 0.1 Create feature branch `feature/ci-pipeline-foundation` from `main`
 - [x] 0.2 Verify branch creation and current branch status
 
-## 1. Self-Hosted Runner Provisioning
+## 1. Self-Hosted Runner Provisioning — SUPERSEDED, REVERSED
 
-- [x] 1.1 Runner host confirmed: the project owner's own development machine (see design.md) — no separate provisioning needed, install directly on it
-- [x] 1.2 Verified already installed on the runner host: Node v22.18.0, Python 3.11.9, Tesseract-OCR (`C:\Program Files\Tesseract-OCR\tesseract.exe`), Poppler (`pdftoppm` via winget), Ollama (`%LOCALAPPDATA%\Programs\Ollama\ollama.exe`) — nothing to install
-- [x] 1.3 Registered as `LAP1RS-jobfinder` via `gh api` + `config.cmd` (repo confirmed public — GitHub's mandatory fork-PR approval gate for self-hosted runners accepted as sufficient mitigation, see design.md). Running interactively (`run.cmd`, not yet an OS service) for today's verification; installing as an auto-starting Windows service requires an elevated (Administrator) terminal — see follow-up note below
-- [x] 1.4 Confirmed via `gh api repos/rrangelsegura/JobFinder/actions/runners`: status "online", busy: false
-
-- [ ] 1.5 **Follow-up (owner action required):** install the runner as a persistent Windows service so it survives reboots/logout, from an elevated (Run as Administrator) PowerShell:
-  ```powershell
-  cd "$env:USERPROFILE\actions-runner-jobfinder"
-  .\config.cmd remove --token <fresh removal token from gh api>
-  .\config.cmd --url https://github.com/rrangelsegura/JobFinder --token <fresh registration token> --name "$env:COMPUTERNAME-jobfinder" --labels self-hosted,Windows,X64 --unattended --runasservice
-  ```
+- [x] 1.1–1.4 Originally: registered self-hosted runner `LAP1RS-jobfinder` on the project owner's own PC, ran it interactively, confirmed online. **Reversed after the owner raised a legitimate local-security concern** about running a persistent, network-reachable runner on their personal machine — especially once the repo was confirmed public. Also, nearly every bug hit while getting this runner green (CRLF/LF via `core.autocrlf`, `python` on PATH resolving to an unrelated tool's venv, `actions/setup-python` failing outright, needing an elevated terminal for the service, and the accidental global-Python-environment mutation logged under 4.3) was specific to "Windows + self-hosted on a personal dev machine," not to CI itself.
+- [x] 1.5 **Decision: switch to GitHub-hosted runners instead of self-hosted.** The repo is public, so GitHub-hosted minutes are free and unlimited. The entire test suite is already mocked (no real Ollama/Redis dependency), so hosted runners lose nothing today. Cleanup performed: killed the `Runner.Listener.exe` process, ran `config.cmd remove` (deregistered from GitHub), deleted `~/actions-runner-jobfinder` entirely. Confirmed via `gh api repos/rrangelsegura/JobFinder/actions/runners` → `[]` (no runners registered). The owner's PC has no leftover service, process, or registration.
 
 ## 2. CI Workflow Authoring
 
@@ -23,7 +14,7 @@
 - [x] 2.2 Add `backend-node` job: checkout, setup Node 20, `npm ci`, `npm run build`, `npm test` — `working-directory: backend`
 - [x] 2.3 Add `backend-python` job: checkout, setup Python 3.11, `pip install -r requirements.txt`, `pytest` — `working-directory: backend`
 - [x] 2.4 Add `frontend` job: checkout, setup Node 20, `npm ci`, `npm run lint`, `npm run format:check`, `npm run build`, `npm test` — `working-directory: frontend`
-- [x] 2.5 Set `runs-on: [self-hosted]` for all three jobs
+- [x] 2.5 Set `runs-on: ubuntu-latest` for all three jobs (changed from `[self-hosted]`, see section 1); restored `actions/setup-python@v5` since the Windows-runner-specific failure no longer applies on `ubuntu-latest`, and dropped the `PYTHON_EXE` absolute-path workaround (no longer needed)
 - [x] 2.6 Confirmed: no `services:` block in any job, no dependency on Postgres/Redis/ChromaDB/MailDev/real Ollama
 
 ## 3. Review and Update Existing Unit Tests (MANDATORY)

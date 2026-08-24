@@ -138,7 +138,7 @@ JobFinder/
 
 # Continuous Integration
 
-Every pull request targeting `main` and every push to `main` runs an automated pipeline via GitHub Actions (`.github/workflows/ci.yml`) on a self-hosted runner:
+Every pull request targeting `main` and every push to `main` runs an automated pipeline via GitHub Actions (`.github/workflows/ci.yml`) on GitHub-hosted `ubuntu-latest` runners (free and unlimited for this public repo):
 
 | Job              | Runs                                                             |
 | ---------------- | ----------------------------------------------------------------- |
