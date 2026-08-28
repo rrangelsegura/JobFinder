@@ -136,6 +136,20 @@ JobFinder/
 
 ---
 
+# Continuous Integration
+
+Every pull request targeting `main` and every push to `main` runs an automated pipeline via GitHub Actions (`.github/workflows/ci.yml`) on GitHub-hosted `ubuntu-latest` runners (free and unlimited for this public repo):
+
+| Job              | Runs                                                             |
+| ---------------- | ----------------------------------------------------------------- |
+| `backend-node`   | TypeScript build + Jest suite (`backend/`)                        |
+| `backend-python` | Pytest suite (`backend/`)                                         |
+| `frontend`       | ESLint + Prettier check + build + Vitest suite (`frontend/`)       |
+
+The pipeline is currently **informative only** — it reports status on commits and PRs but does not yet block merges. It intentionally does not start Postgres, Redis, ChromaDB, or Ollama: the existing test suite mocks those dependencies. See `openspec/changes/ci-pipeline-foundation/` for the full design, and its proposal for the planned follow-ups (branch protection, e2e-in-CI).
+
+---
+
 # Supported Development Environment
 
 | Component      | Version              |

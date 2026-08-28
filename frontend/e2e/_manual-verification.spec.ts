@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test"
 
-const REAL_CV = "C:/Users/Usuario/AppData/Local/Temp/claude/C--Users-Usuario-Documents-RENE-Laboral-iniciativas-SistemasMultiagente-JobFinder-JobFinder/bdd4b61a-d5aa-4598-85a6-066a2101d4db/scratchpad/real-cv-rene.pdf"
+const REAL_CV =
+  "C:/Users/Usuario/AppData/Local/Temp/claude/C--Users-Usuario-Documents-RENE-Laboral-iniciativas-SistemasMultiagente-JobFinder-JobFinder/bdd4b61a-d5aa-4598-85a6-066a2101d4db/scratchpad/real-cv-rene.pdf"
 
 function uniqueEmail() {
   return `hardening-verify-${Date.now()}@example.com`
@@ -60,6 +61,7 @@ test("re-upload the same real CV that originally failed extraction", async ({
   console.log("RESULT email:", email)
   console.log("RESULT isSuccess:", isSuccess)
   console.log("RESULT isFailure:", isFailure)
-  if (isSuccess) console.log("RESULT successText:", await statusEl.textContent())
+  if (isSuccess)
+    console.log("RESULT successText:", await statusEl.textContent())
   if (isFailure) console.log("RESULT failureText:", await alertEl.textContent())
 })

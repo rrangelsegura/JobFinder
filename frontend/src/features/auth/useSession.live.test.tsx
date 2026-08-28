@@ -43,7 +43,11 @@ describe("useSession.live", () => {
     mockedGet.mockResolvedValue({
       data: {
         status: "success",
-        data: { candidateId: 7, email: "candidate@example.com", emailVerified: true },
+        data: {
+          candidateId: 7,
+          email: "candidate@example.com",
+          emailVerified: true,
+        },
         agent_trace_id: "trace-1",
         model_used: null,
       },

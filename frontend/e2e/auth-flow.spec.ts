@@ -37,7 +37,9 @@ async function fetchVerificationTokenFor(candidateId: number): Promise<string> {
   try {
     const token = await redis.get(`email-verify-candidate:${candidateId}`)
     if (!token) {
-      throw new Error(`No pending verification token found for candidate ${candidateId}`)
+      throw new Error(
+        `No pending verification token found for candidate ${candidateId}`,
+      )
     }
     return token
   } finally {
@@ -45,15 +47,24 @@ async function fetchVerificationTokenFor(candidateId: number): Promise<string> {
   }
 }
 
-async function registerAndVerify(email: string, password: string): Promise<void> {
+async function registerAndVerify(
+  email: string,
+  password: string,
+): Promise<void> {
   const api = await playwrightRequest.newContext({ baseURL: API_BASE_URL })
-  const registerRes = await api.post("/auth/register", { data: { email, password } })
-  const { candidateId } = (await registerRes.json()).data as { candidateId: number }
+  const registerRes = await api.post("/auth/register", {
+    data: { email, password },
+  })
+  const { candidateId } = (await registerRes.json()).data as {
+    candidateId: number
+  }
 
   const token = await fetchVerificationTokenFor(candidateId)
   const verifyRes = await api.post("/auth/verify-email", { data: { token } })
   if (!verifyRes.ok()) {
-    throw new Error(`Failed to verify email for candidate ${candidateId}: ${verifyRes.status()}`)
+    throw new Error(
+      `Failed to verify email for candidate ${candidateId}: ${verifyRes.status()}`,
+    )
   }
   await api.dispose()
 }

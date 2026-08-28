@@ -96,7 +96,8 @@ async function resendVerification(email: string): Promise<void> {
 
 export function useResendVerification() {
   return useMutation({
-    mutationFn: (email: string) => withBackendErrorMessage(resendVerification(email)),
+    mutationFn: (email: string) =>
+      withBackendErrorMessage(resendVerification(email)),
   })
 }
 

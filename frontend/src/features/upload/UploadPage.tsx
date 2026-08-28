@@ -12,7 +12,9 @@ export function UploadPage() {
   const { email: accountEmail } = useSession()
 
   const extractedEmail =
-    data?.status === "completed" ? data.candidate?.personal_info?.email : undefined
+    data?.status === "completed"
+      ? data.candidate?.personal_info?.email
+      : undefined
   const emailMismatch =
     !!extractedEmail &&
     !!accountEmail &&
@@ -37,9 +39,9 @@ export function UploadPage() {
         )}
         {emailMismatch && (
           <p className="text-sm text-muted-foreground">
-            Heads up: your CV lists <strong>{extractedEmail}</strong>, which
-            is different from your account email ({accountEmail}). If that's
-            a typo, no action is needed — this doesn't change how you log in.
+            Heads up: your CV lists <strong>{extractedEmail}</strong>, which is
+            different from your account email ({accountEmail}). If that's a
+            typo, no action is needed — this doesn't change how you log in.
           </p>
         )}
       </CardContent>
