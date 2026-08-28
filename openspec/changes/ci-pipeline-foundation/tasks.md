@@ -50,5 +50,5 @@
 
 ## 8. Close Out
 
-- [ ] 8.1 Merge the PR for `feature/ci-pipeline-foundation` into `main` once step 4 passes
-- [ ] 8.2 Propose `openspec archive ci-pipeline-foundation` per the project's standard change lifecycle
+- [x] 8.1 Merged [PR #6](https://github.com/rrangelsegura/JobFinder/pull/6) into `main` (merge commit `0b2a0e4`), owner confirmed explicitly
+- [x] 8.2 Archiving via `openspec archive ci-pipeline-foundation`
