@@ -146,7 +146,7 @@ Every pull request targeting `main` and every push to `main` runs an automated p
 | `backend-python` | Pytest suite (`backend/`)                                         |
 | `frontend`       | ESLint + Prettier check + build + Vitest suite (`frontend/`)       |
 
-The pipeline is currently **informative only** — it reports status on commits and PRs but does not yet block merges. It intentionally does not start Postgres, Redis, ChromaDB, or Ollama: the existing test suite mocks those dependencies. See `openspec/changes/ci-pipeline-foundation/` for the full design, and its proposal for the planned follow-ups (branch protection, e2e-in-CI).
+`main` is a **protected branch**: all three checks must pass and be up to date with `main` before a pull request can merge, enforced even for the repository admin. Direct pushes, force-pushes, and deletion of `main` are all rejected by GitHub — every change now lands through a pull request. The pipeline intentionally does not start Postgres, Redis, ChromaDB, or Ollama: the existing test suite mocks those dependencies. See `openspec/changes/archive/2026-08-28-ci-pipeline-foundation/` and `openspec/changes/ci-branch-protection/` for the full design, and the latter's proposal for the remaining planned follow-up (e2e-in-CI).
 
 ---
 

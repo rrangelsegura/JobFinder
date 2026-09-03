@@ -9,7 +9,7 @@
 
 ## 2. Apply Branch Protection
 
-- [ ] 2.1 Apply the rule via `gh api -X PUT repos/rrangelsegura/JobFinder/branches/main/protection` with this payload:
+- [x] 2.1 Applied via `gh api -X PUT repos/rrangelsegura/JobFinder/branches/main/protection` with this payload:
   ```json
   {
     "required_status_checks": {
@@ -32,7 +32,7 @@
     "allow_fork_syncing": true
   }
   ```
-- [ ] 2.2 Read the rule back (`gh api repos/rrangelsegura/JobFinder/branches/main/protection`) and confirm it matches: PR required, 3 checks required, strict=true, enforce_admins=true, force-push/deletion blocked
+- [x] 2.2 Read back and confirmed: `strict:true`, `contexts:[backend-node,backend-python,frontend]`, `enforce_admins:true`, `allow_force_pushes:false`, `allow_deletions:false`
 
 ## 3. Review and Update Existing Unit Tests (MANDATORY)
 
@@ -40,7 +40,7 @@
 
 ## 4. Run Unit Tests and Verify Pipeline (MANDATORY)
 
-- [ ] 4.1 Verify enforcement, not just configuration: attempt a direct push of a trivial commit to `main` from this session and confirm GitHub rejects it
+- [x] 4.1 Verified: attempted `git push origin main` with a trivial scratch commit — rejected with `GH006: Protected branch update failed... 3 of 3 required status checks are expected`. Local commit discarded via `git reset --hard origin/main` (never reached the remote).
 - [ ] 4.2 Open a real pull request for this change's own branch (`feature/ci-branch-protection`) and confirm the merge button is blocked until all three checks report success and the branch is up to date
 - [ ] 4.3 Confirm the three checks do run and pass on this PR (same jobs as always — no workflow change)
 - [ ] 4.4 Create verification report at `openspec/changes/ci-branch-protection/specs/ci-branch-protection/reports/YYYY-MM-DD-step-4-branch-protection-verification.md` documenting the exact API payload applied, the read-back confirmation, and the rejected-push + blocked-merge proof
@@ -55,8 +55,8 @@
 
 ## 7. Update Technical Documentation (MANDATORY)
 
-- [ ] 7.1 Update the "Continuous Integration" section of `README.md` to state that CI is now a required, enforced check on `main` (no longer "informative only"), and note the new required-PR workflow
-- [ ] 7.2 Update `docs/development_guide.md`'s CI paragraph to match
+- [x] 7.1 Updated the "Continuous Integration" section of `README.md`: no longer "informative only," documents the protected-branch rule
+- [x] 7.2 Updated `docs/development_guide.md`'s CI paragraph to match
 
 ## 8. Close Out
 
