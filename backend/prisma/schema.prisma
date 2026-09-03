@@ -93,7 +93,7 @@ model WorkExperienceResponsibility {
 // general responsibilities above.
 model Project {
   id          Int     @id @default(autoincrement())
-  name        String  @db.VarChar(150)
+  name        String  @db.VarChar(300)
   description String?
 
   workExperienceId Int
