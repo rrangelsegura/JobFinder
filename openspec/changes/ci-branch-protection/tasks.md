@@ -5,7 +5,7 @@
 
 ## 1. Confirm CI Job Names
 
-- [ ] 1.1 Confirm the exact status-check context names GitHub uses for the three CI jobs (must match `.github/workflows/ci.yml` job names exactly: `backend-node`, `backend-python`, `frontend`) by reading a recent successful run's checks
+- [x] 1.1 Confirmed via `gh api repos/rrangelsegura/JobFinder/commits/main/check-runs`: exact context names are `backend-node`, `backend-python`, `frontend` — matches plan
 
 ## 2. Apply Branch Protection
 
