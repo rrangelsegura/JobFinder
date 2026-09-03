@@ -60,5 +60,5 @@
 
 ## 8. Close Out
 
-- [ ] 8.1 Merge this change's own PR into `main` (first real test of the new rule) once step 4 passes — requires the project owner's explicit confirmation
-- [ ] 8.2 Propose `openspec archive ci-branch-protection` per the project's standard change lifecycle
+- [x] 8.1 Merged [PR #7](https://github.com/rrangelsegura/JobFinder/pull/7) into `main` (merge commit `8c3d498`), owner confirmed explicitly — first real merge under the new rule, and it correctly required going through a PR (this session could no longer push the archive commit directly to `main` either — see the change's own follow-up branch)
+- [x] 8.2 Archiving via `openspec archive ci-branch-protection`
