@@ -41,9 +41,9 @@
 ## 4. Run Unit Tests and Verify Pipeline (MANDATORY)
 
 - [x] 4.1 Verified: attempted `git push origin main` with a trivial scratch commit — rejected with `GH006: Protected branch update failed... 3 of 3 required status checks are expected`. Local commit discarded via `git reset --hard origin/main` (never reached the remote).
-- [ ] 4.2 Open a real pull request for this change's own branch (`feature/ci-branch-protection`) and confirm the merge button is blocked until all three checks report success and the branch is up to date
-- [ ] 4.3 Confirm the three checks do run and pass on this PR (same jobs as always — no workflow change)
-- [ ] 4.4 Create verification report at `openspec/changes/ci-branch-protection/specs/ci-branch-protection/reports/YYYY-MM-DD-step-4-branch-protection-verification.md` documenting the exact API payload applied, the read-back confirmation, and the rejected-push + blocked-merge proof
+- [x] 4.2 Opened [PR #7](https://github.com/rrangelsegura/JobFinder/pull/7) — confirmed `mergeStateStatus: BLOCKED` while checks were pending
+- [x] 4.3 All three checks passed; `mergeStateStatus` flipped to `CLEAN` immediately after
+- [x] 4.4 Verification report: `openspec/changes/ci-branch-protection/specs/ci-branch-protection/reports/2026-08-28-step-4-branch-protection-verification.md`
 
 ## 5. Manual Endpoint Testing with curl — NOT APPLICABLE
 
