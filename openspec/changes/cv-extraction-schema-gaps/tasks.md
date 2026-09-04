@@ -56,7 +56,7 @@
 
 ## 9. Close Out
 
-- [ ] 9.1 Push branch, open PR (required — `main` is protected)
-- [ ] 9.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 9.3 Merge once step 6 and step 7 pass and the project owner confirms explicitly
-- [ ] 9.4 Propose `openspec archive cv-extraction-schema-gaps` per the project's standard change lifecycle
+- [x] 9.1 Pushed branch, opened [PR #11](https://github.com/rrangelsegura/JobFinder/pull/11)
+- [x] 9.2 All three CI checks passed; PR reached `mergeStateStatus: CLEAN`
+- [x] 9.3 Merged into `main` (merge commit `4e0494d`), owner confirmed explicitly
+- [x] 9.4 Archiving via `openspec archive cv-extraction-schema-gaps`
