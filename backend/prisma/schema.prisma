@@ -46,7 +46,10 @@ model Education {
   id          Int       @id @default(autoincrement())
   institution String    @db.VarChar(100)
   title       String    @db.VarChar(250)
-  startDate   DateTime
+  // cv-extraction-schema-gaps: a real CV stated no start date for one
+  // education entry (only a graduation year) — nullable rather than
+  // fabricating a value.
+  startDate   DateTime?
   endDate     DateTime?
 
   candidateId Int
@@ -156,6 +159,9 @@ model Skill {
   id   Int       @id @default(autoincrement())
   name String    @db.VarChar(100)
   type SkillType
+  // cv-extraction-schema-gaps: mirrors Language.proficiency — a stated
+  // mastery level, free-text since CVs phrase it inconsistently.
+  proficiency String? @db.VarChar(50)
 
   candidateId Int
   candidate   Candidate @relation(fields: [candidateId], references: [id])

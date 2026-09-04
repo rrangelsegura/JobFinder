@@ -101,7 +101,11 @@ class PersonalInfo(BaseModel):
 class EducationEntry(BaseModel):
     institution: str
     title: str
-    start_date: date
+    # cv-extraction-schema-gaps: found via a real CV where the source states
+    # only a graduation year for one entry, no start date at all — the LLM
+    # correctly reported this as missing rather than fabricating a date, and
+    # a required `date` field rejected that outright.
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
 
     _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)
@@ -161,6 +165,11 @@ class FlatWorkExperienceEntry(BaseModel):
 class SkillEntry(BaseModel):
     name: str
     type: SkillType
+    # cv-extraction-schema-gaps: found via a real CV listing skills with a
+    # stated proficiency level ("Scrum — Intermediate") — with nowhere else
+    # to put it, the LLM was overloading `type` with proficiency words
+    # ("intermediate", "advanced"), failing the strict technical/soft enum.
+    proficiency: Optional[str] = None
 
 
 class LanguageEntry(BaseModel):

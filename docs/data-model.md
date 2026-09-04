@@ -39,10 +39,10 @@ Represents educational background information for candidates.
 - id: Unique identifier for the education record (Primary Key)
 - institution: Name of the educational institution (max 100 characters)
 - title: Degree or certification title obtained (max 250 characters)
-- startDate: Start date of the education period
+- startDate: Start date of the education period (optional — some CVs state only an end/graduation date)
 - endDate: End date of the education period (optional, null if ongoing)
 - candidateId: Foreign key referencing the Candidate
-- **Validation Rules**: Institution required (max 100), Title required (max 250), Start date required. Max 3 education records per candidate.
+- **Validation Rules**: Institution required (max 100), Title required (max 250), start date and end date both optional. Max 3 education records per candidate.
 - **Relationships**: candidate (N:1).
 
 **3. WorkExperience**
@@ -110,8 +110,9 @@ Represents a technical or soft skill extracted from a candidate's resume.
 - id: Unique identifier for the skill record (Primary Key)
 - name: Skill name, e.g. "Python", "Communication" (max 100 characters)
 - type: Skill category — `technical` or `soft`
+- proficiency: Stated mastery level, e.g. "Advanced", "Intermediate" (optional, free text, max 50 characters) — distinct from `type`, which only ever classifies the kind of skill
 - candidateId: Foreign key referencing the Candidate
-- **Validation Rules**: Name required (max 100), type required (one of `technical`, `soft`). No maximum record count per candidate.
+- **Validation Rules**: Name required (max 100), type required (one of `technical`, `soft`), proficiency optional. No maximum record count per candidate.
 - **Relationships**: candidate (N:1).
 
 **10. Language**

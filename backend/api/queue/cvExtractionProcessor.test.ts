@@ -135,6 +135,49 @@ describe("processCvExtractionJob", () => {
     );
   });
 
+  // cv-extraction-schema-gaps: a real CV stated no start date for an
+  // education entry (only a graduation year) — must persist with a NULL
+  // startDate rather than failing the transaction.
+  it("persists an education entry with no start date as a NULL startDate", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...SUCCESS_RESPONSE,
+        education: [
+          { institution: "Coursera", title: "Data Science", start_date: null, end_date: "2020-06-01" },
+        ],
+      }),
+    }) as any;
+
+    await processCvExtractionJob(buildJob());
+
+    expect(prisma.education.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ institution: "Coursera", startDate: null })],
+      })
+    );
+  });
+
+  // cv-extraction-schema-gaps: a stated proficiency level must persist
+  // alongside the skill's type, not be forced into the type field.
+  it("persists a skill's proficiency alongside its type", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...SUCCESS_RESPONSE,
+        skills: [{ name: "Scrum", type: "soft", proficiency: "Intermediate" }],
+      }),
+    }) as any;
+
+    await processCvExtractionJob(buildJob());
+
+    expect(prisma.skill.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ name: "Scrum", type: "soft", proficiency: "Intermediate" })],
+      })
+    );
+  });
+
   // Spec: sections with no entries shouldn't produce empty createMany calls
   it("skips createMany for sections with no entries (e.g. no certifications found)", async () => {
     global.fetch = jest.fn().mockResolvedValue({

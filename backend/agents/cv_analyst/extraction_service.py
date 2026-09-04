@@ -66,7 +66,9 @@ _FLAT_EXAMPLE_RESULT = CvExtractionFlatResult(
     personal_info=PersonalInfo(first_name="Jane", last_name="Doe", email="jane.doe@example.com", phone="612345678"),
     education=[
         EducationEntry(institution="MIT", title="Computer Science", start_date="2015-09-01", end_date="2019-06-01"),
-        EducationEntry(institution="Coursera", title="Data Science Bootcamp", start_date="2020-02-01", end_date=None),
+        # No start_date: the source resume stated only a graduation year for
+        # this entry — omit the field rather than inventing one.
+        EducationEntry(institution="Coursera", title="Data Science Bootcamp", start_date=None, end_date="2020-06-01"),
     ],
     work_experience=[
         FlatWorkExperienceEntry(
@@ -87,7 +89,9 @@ _FLAT_EXAMPLE_RESULT = CvExtractionFlatResult(
     skills=[
         SkillEntry(name="Python", type=SkillType.technical),
         SkillEntry(name="SQL", type=SkillType.technical),
-        SkillEntry(name="AWS", type=SkillType.technical),
+        # proficiency is where a stated mastery level goes — never in `type`,
+        # which is only ever "technical" or "soft".
+        SkillEntry(name="AWS", type=SkillType.technical, proficiency="Advanced"),
         SkillEntry(name="Communication", type=SkillType.soft),
     ],
     languages=[
@@ -187,7 +191,14 @@ def _build_extraction_prompt(resume_text: str) -> str:
         f"{example}\n\n"
         "Omit fields you cannot find; use empty lists for missing sections. "
         "For an ongoing education or job with no end date, omit end_date "
-        "rather than writing 'present' or 'current'.\n\n"
+        "rather than writing 'present' or 'current'. If an education entry's "
+        "start date isn't stated (e.g. only a graduation year is given), "
+        "omit start_date rather than guessing one. A skill's \"type\" is "
+        "ONLY ever \"technical\" or \"soft\" — it classifies the KIND of "
+        "skill, never how well the candidate knows it. If the resume states "
+        "a proficiency or mastery level for a skill (e.g. \"Advanced\", "
+        "\"Intermediate\"), put that in the skill's \"proficiency\" field "
+        "instead, never in \"type\".\n\n"
         f"Resume text:\n{resume_text}"
     )
 
