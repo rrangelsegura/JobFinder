@@ -3,9 +3,7 @@
 ## Purpose
 
 Runs OCR against an uploaded CV PDF and prompts a local LLM to produce structured, Pydantic-validated candidate data (personal info, education, work experience, and skills/languages/certifications when present), persisting the results and embedding the resume text into the vector store for later RAG/matching use.
-
 ## Requirements
-
 ### Requirement: OCR Text Extraction
 The system SHALL run OCR against the uploaded PDF to obtain raw text, using a fallback OCR provider if the primary provider fails.
 
@@ -56,7 +54,7 @@ The system SHALL extract personal information, education, and work experience fr
 - **THEN** the extraction succeeds with that entry's `responsibilities` and `projects` lists empty, without failing the job
 
 ### Requirement: Persistence and Embedding of Extraction Results
-On successful extraction, the system SHALL persist the structured `Education` and `WorkExperience` data against the `Candidate` — including each work experience's responsibilities and projects (with each project's achievements and stack) — SHALL persist extracted personal info (name, email, phone, address) against the specific `Resume` record rather than the `Candidate`, and SHALL chunk and embed the resume text into the `resumes_embeddings` vector collection, tagged by section (e.g. `skills`, `experience`). `Candidate.email` SHALL NOT be modified by extraction, since it is the candidate's login credential and is independent of any single resume's reported contact info.
+On successful extraction, the system SHALL persist the structured `Education` and `WorkExperience` data against the `Candidate` — including each work experience's responsibilities and projects (with each project's achievements and stack) — SHALL persist extracted personal info (name, email, phone, address) against the specific `Resume` record rather than the `Candidate`, and SHALL chunk and embed the resume text into the `resumes_embeddings` vector collection, tagged by section (e.g. `skills`, `experience`). `Candidate.email` SHALL NOT be modified by extraction, since it is the candidate's login credential and is independent of any single resume's reported contact info. A project's `name` SHALL persist without truncation or failure up to 300 characters.
 
 #### Scenario: Successful extraction persists structured data and embeddings
 - **WHEN** an extraction job completes successfully
@@ -65,6 +63,10 @@ On successful extraction, the system SHALL persist the structured `Education` an
 #### Scenario: Extraction never changes the candidate's login email
 - **WHEN** an extraction job completes with a `personal_info.email` different from the candidate's registered account email
 - **THEN** the system persists the extracted email only on the `Resume` record and `Candidate.email` remains unchanged
+
+#### Scenario: A long project name persists without truncation
+- **WHEN** a work experience entry's extracted project has a `name` up to 300 characters
+- **THEN** the system persists the full project name without truncation, error, or job failure
 
 ### Requirement: Candidate Notified of Resume/Account Email Mismatch
 When a completed extraction's reported email differs from the candidate's account email, the system SHALL inform the candidate rather than silently applying or silently ignoring the difference.
@@ -109,3 +111,4 @@ The system SHALL extract each work experience entry's responsibilities and proje
 #### Scenario: A detail call's retry is independent of other detail calls
 - **WHEN** one work experience entry's detail call fails schema validation on its first attempt
 - **THEN** the system retries only that entry's detail call once, without re-running the flat call or any other entry's detail call
+
