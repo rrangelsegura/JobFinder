@@ -100,6 +100,28 @@ def test_start_date_still_rejects_genuinely_invalid_values():
         WorkExperienceEntry(company="Acme", position="Engineer", start_date="not a date")
 
 
+# cv-extraction-schema-gaps: a real CV's education entry stated only a
+# graduation year, no start date — must not fail the whole job.
+def test_education_start_date_is_optional():
+    entry = EducationEntry(institution="MIT", title="CS", end_date="2020-06-01")
+    assert entry.start_date is None
+
+
+# cv-extraction-schema-gaps: a real CV stated skill proficiency levels
+# ("Scrum — Intermediate"), which must go in `proficiency`, never `type`.
+def test_skill_proficiency_is_optional_and_round_trips():
+    with_proficiency = SkillEntry(name="Scrum", type=SkillType.soft, proficiency="Intermediate")
+    assert with_proficiency.proficiency == "Intermediate"
+
+    without_proficiency = SkillEntry(name="Python", type=SkillType.technical)
+    assert without_proficiency.proficiency is None
+
+
+def test_skill_type_still_rejects_a_proficiency_level():
+    with pytest.raises(ValueError):
+        SkillEntry(name="Scrum", type="intermediate")
+
+
 # work-experience-detail: responsibilities/projects give the LLM somewhere
 # structured to put role-level duties and specific initiatives, instead of
 # collapsing everything into `description` (which came back empty on a real

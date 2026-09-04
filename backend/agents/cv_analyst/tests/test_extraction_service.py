@@ -147,6 +147,26 @@ def test_flat_example_work_experience_has_no_responsibilities_or_projects():
         assert not hasattr(entry, "projects")
 
 
+# cv-extraction-schema-gaps: the worked example must show the LLM both new
+# shapes — a skill with a stated proficiency, and an education entry with no
+# start date — since (per this codebase's own established lesson above) the
+# example, not prose alone, is what actually shapes real LLM output.
+def test_flat_example_demonstrates_skill_proficiency_and_optional_education_start():
+    proficient_skills = [s for s in extraction_service._FLAT_EXAMPLE_RESULT.skills if s.proficiency is not None]
+    assert len(proficient_skills) >= 1
+
+    no_start_date_entries = [
+        e for e in extraction_service._FLAT_EXAMPLE_RESULT.education if e.start_date is None
+    ]
+    assert len(no_start_date_entries) >= 1
+
+
+def test_extraction_prompt_explains_skill_type_versus_proficiency():
+    prompt = extraction_service._build_extraction_prompt("resume text")
+    assert "proficiency" in prompt.lower()
+    assert "technical" in prompt.lower() and "soft" in prompt.lower()
+
+
 # Same repetition-degradation lesson as skills/education above, now applied to
 # the detail call's own worked example instead of the flat one.
 def test_work_experience_detail_example_shows_multiple_projects_with_depth():

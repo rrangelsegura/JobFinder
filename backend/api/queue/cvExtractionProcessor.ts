@@ -15,7 +15,7 @@ interface PersonalInfo {
 interface EducationEntry {
   institution: string;
   title: string;
-  start_date: string;
+  start_date?: string | null;
   end_date?: string | null;
 }
 
@@ -39,6 +39,7 @@ interface WorkExperienceEntry {
 interface SkillEntry {
   name: string;
   type: "technical" | "soft";
+  proficiency?: string | null;
 }
 
 interface LanguageEntry {
@@ -146,7 +147,7 @@ export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Pro
         data: result.education.map((e) => ({
           institution: e.institution,
           title: e.title,
-          startDate: new Date(e.start_date),
+          startDate: e.start_date ? new Date(e.start_date) : null,
           endDate: e.end_date ? new Date(e.end_date) : null,
           candidateId,
         })),
@@ -196,7 +197,12 @@ export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Pro
 
     if (result.skills.length > 0) {
       await tx.skill.createMany({
-        data: result.skills.map((s) => ({ name: s.name, type: s.type, candidateId })),
+        data: result.skills.map((s) => ({
+          name: s.name,
+          type: s.type,
+          proficiency: s.proficiency ?? null,
+          candidateId,
+        })),
       });
     }
 
