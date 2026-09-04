@@ -31,7 +31,7 @@
 
 ## 6. Close Out
 
-- [ ] 6.1 Push the branch and open a PR (required — `main` is now protected, see `ci-branch-protection`)
-- [ ] 6.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 6.3 Merge once step 3 passes and the project owner confirms explicitly
-- [ ] 6.4 Propose `openspec archive project-name-width` per the project's standard change lifecycle
+- [x] 6.1 Pushed branch, opened [PR #9](https://github.com/rrangelsegura/JobFinder/pull/9)
+- [x] 6.2 All three CI checks passed; PR reached `mergeStateStatus: CLEAN`
+- [x] 6.3 Merged into `main` (merge commit `5b24f99`), owner confirmed explicitly
+- [x] 6.4 Archiving via `openspec archive project-name-width`
