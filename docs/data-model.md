@@ -68,10 +68,10 @@ Represents a single role-level duty within a `WorkExperience`, distinct from a s
 **5. Project**
 Represents a specific initiative within a `WorkExperience` — distinct from the role's general responsibilities above.
 - id: Unique identifier for the project record (Primary Key)
-- name: Project name (max 150 characters)
+- name: Project name (max 300 characters)
 - description: Project description (optional, unbounded length)
 - workExperienceId: Foreign key referencing the WorkExperience
-- **Validation Rules**: Name required (max 150), description optional. Deleted automatically when its `WorkExperience` is deleted (`onDelete: Cascade`).
+- **Validation Rules**: Name required (max 300), description optional. Deleted automatically when its `WorkExperience` is deleted (`onDelete: Cascade`).
 - **Relationships**: workExperience (N:1), achievements (1:N), stack (1:N).
 
 **6. ProjectAchievement**
