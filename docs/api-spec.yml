@@ -149,6 +149,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmptySuccessResponse"
+  /candidates/me:
+    get:
+      summary: Get the authenticated candidate's analysis results
+      description: >
+        Self-scoped (no {id} — uses the session's candidateId, same pattern as
+        /auth/session), so there is no ownership check to get wrong. Reads
+        live from Postgres, not from BullMQ job state. Returns
+        `hasAnalysis: false` when the candidate has never had a resume
+        complete extraction; otherwise returns personal info (from the most
+        recent resume with completed extraction) plus education, work
+        experience (with responsibilities/projects/achievements/stack),
+        skills (with proficiency), languages, and certifications.
+      tags:
+        - Candidates
+      responses:
+        "200":
+          description: The candidate's analysis results, or hasAnalysis:false.
+        "401":
+          description: No valid session cookie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
   /candidates:
     get:
       summary: List candidates

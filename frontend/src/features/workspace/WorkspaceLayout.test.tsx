@@ -51,20 +51,24 @@ describe("WorkspaceLayout", () => {
     expect(uploadLink).toHaveAttribute("href", "/workspace/upload")
   })
 
-  it("renders Chat, Analysis Results, and Action Plan as disabled, not links", () => {
+  it("renders Analysis Results as a live navigable link", () => {
+    renderLayout()
+
+    const analysisLink = screen.getByRole("link", { name: /analysis results/i })
+    expect(analysisLink).toHaveAttribute("href", "/workspace/analysis")
+  })
+
+  it("renders Chat and Action Plan as disabled, not links", () => {
     renderLayout()
 
     expect(
       screen.queryByRole("link", { name: /^chat$/i }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole("link", { name: /analysis results/i }),
-    ).not.toBeInTheDocument()
-    expect(
       screen.queryByRole("link", { name: /action plan/i }),
     ).not.toBeInTheDocument()
 
-    expect(screen.getAllByText(/coming soon/i)).toHaveLength(3)
+    expect(screen.getAllByText(/coming soon/i)).toHaveLength(2)
   })
 
   it("does not navigate away when a disabled nav item is clicked", async () => {
