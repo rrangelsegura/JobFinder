@@ -9,6 +9,26 @@ describe("UploadStatusIndicator", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
+  it("shows queued-specific copy", () => {
+    render(<UploadStatusIndicator status="processing" phase="queued" />)
+    expect(screen.getByRole("status")).toHaveTextContent(/waiting to start/i)
+  })
+
+  it("shows extracting-specific copy", () => {
+    render(<UploadStatusIndicator status="processing" phase="extracting" />)
+    expect(screen.getByRole("status")).toHaveTextContent(/analyzing your cv/i)
+  })
+
+  it("shows saving-specific copy", () => {
+    render(<UploadStatusIndicator status="processing" phase="saving" />)
+    expect(screen.getByRole("status")).toHaveTextContent(/saving your profile/i)
+  })
+
+  it("falls back to generic processing copy when no phase is given", () => {
+    render(<UploadStatusIndicator status="processing" />)
+    expect(screen.getByRole("status")).toHaveTextContent(/processing your cv/i)
+  })
+
   it("shows a success state on completion", () => {
     render(<UploadStatusIndicator status="completed" />)
 

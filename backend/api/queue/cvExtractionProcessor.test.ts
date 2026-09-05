@@ -60,6 +60,7 @@ function buildJob(overrides: Partial<{ resumeId: number; candidateId: number; fi
       candidateId: overrides.candidateId ?? 42,
       filePath: overrides.filePath ?? "/uploads/cv/some-resume.pdf",
     },
+    updateProgress: jest.fn().mockResolvedValue(undefined),
   } as any;
 }
 
@@ -102,6 +103,20 @@ describe("processCvExtractionJob", () => {
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(result).toEqual(SUCCESS_RESPONSE);
+  });
+
+  // cv-extraction-progress-phases: the only two real steps this worker goes
+  // through, in order, before the agent call and before persistence.
+  it("reports progress phases 'extracting' then 'saving' in order", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => SUCCESS_RESPONSE,
+    }) as any;
+    const job = buildJob();
+
+    await processCvExtractionJob(job);
+
+    expect(job.updateProgress.mock.calls).toEqual([[{ phase: "extracting" }], [{ phase: "saving" }]]);
   });
 
   // cv-extraction delta spec: personal info is stored per-resume, never
