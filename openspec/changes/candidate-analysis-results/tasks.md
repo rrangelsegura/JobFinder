@@ -72,7 +72,7 @@
 
 ## 12. Close Out
 
-- [ ] 12.1 Push branch, open PR (required — `main` is protected)
-- [ ] 12.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 12.3 Merge once steps 8-10 pass and the project owner confirms explicitly
-- [ ] 12.4 Propose `openspec archive candidate-analysis-results` per the project's standard change lifecycle
+- [x] 12.1 Pushed branch, opened [PR #15](https://github.com/rrangelsegura/JobFinder/pull/15) (plus a follow-up Prettier fix commit after CI caught unformatted new files)
+- [x] 12.2 All three CI checks passed; PR reached `mergeStateStatus: CLEAN`
+- [x] 12.3 Merged into `main` (merge commit `23e7dc6`), owner confirmed explicitly
+- [x] 12.4 Archiving via `openspec archive candidate-analysis-results`
