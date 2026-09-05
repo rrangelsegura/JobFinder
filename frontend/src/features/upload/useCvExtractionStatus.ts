@@ -16,6 +16,7 @@ export interface ExtractionStatusData {
   phase?: "queued" | "extracting" | "saving"
   candidate?: ExtractedCandidate
   error?: string
+  durationMs?: number
 }
 
 interface ExtractionStatusResponse {

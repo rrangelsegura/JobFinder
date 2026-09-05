@@ -35,6 +35,24 @@ describe("UploadStatusIndicator", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/success|complete/i)
   })
 
+  // Spec: "Success state shows the elapsed time"
+  it("shows the duration in seconds when under a minute", () => {
+    render(<UploadStatusIndicator status="completed" durationMs={42_000} />)
+    expect(screen.getByRole("status")).toHaveTextContent(/42 seconds/i)
+  })
+
+  it("shows the duration in minutes and seconds when over a minute", () => {
+    render(<UploadStatusIndicator status="completed" durationMs={192_000} />)
+    expect(screen.getByRole("status")).toHaveTextContent(/3m 12s/i)
+  })
+
+  it("shows the success message with no duration clause when durationMs is absent", () => {
+    render(<UploadStatusIndicator status="completed" />)
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /^Your CV was processed successfully\.$/i,
+    )
+  })
+
   it("shows the given non-technical failure message, not the raw error", () => {
     render(
       <UploadStatusIndicator
