@@ -5,10 +5,18 @@ import { useLogout } from "@/features/auth/useAuth"
 import { DisabledNavItem } from "./DisabledNavItem"
 
 // The four sections required by specs/candidate-workspace-shell/spec.md's
-// "Persistent Navigation Across Four Sections" requirement. Only Upload is
-// live; the rest are intentionally unbuilt placeholders (design.md
-// Non-Goals).
-const DISABLED_SECTIONS = ["Chat", "Analysis Results", "Action Plan"] as const
+// "Persistent Navigation Across Four Sections" requirement. Upload and
+// Analysis Results are live; Chat and Action Plan are intentionally
+// unbuilt placeholders (candidate-analysis-results design.md Non-Goals).
+const DISABLED_SECTIONS = ["Chat", "Action Plan"] as const
+
+const NAV_LINK_CLASSES = (isActive: boolean) =>
+  cn(
+    "rounded-lg px-3 py-2 text-sm font-medium",
+    isActive
+      ? "bg-primary text-primary-foreground"
+      : "text-foreground hover:bg-muted",
+  )
 
 export function WorkspaceLayout() {
   const logout = useLogout()
@@ -26,16 +34,15 @@ export function WorkspaceLayout() {
         </p>
         <NavLink
           to="/workspace/upload"
-          className={({ isActive }) =>
-            cn(
-              "rounded-lg px-3 py-2 text-sm font-medium",
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground hover:bg-muted",
-            )
-          }
+          className={({ isActive }) => NAV_LINK_CLASSES(isActive)}
         >
           Upload
+        </NavLink>
+        <NavLink
+          to="/workspace/analysis"
+          className={({ isActive }) => NAV_LINK_CLASSES(isActive)}
+        >
+          Analysis Results
         </NavLink>
         {DISABLED_SECTIONS.map((label) => (
           <DisabledNavItem key={label} label={label} />
