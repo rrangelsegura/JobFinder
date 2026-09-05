@@ -191,9 +191,13 @@ def _build_extraction_prompt(resume_text: str) -> str:
         f"{example}\n\n"
         "Omit fields you cannot find; use empty lists for missing sections. "
         "For an ongoing education or job with no end date, omit end_date "
-        "rather than writing 'present' or 'current'. If an education entry's "
-        "start date isn't stated (e.g. only a graduation year is given), "
-        "omit start_date rather than guessing one. A skill's \"type\" is "
+        "rather than writing 'present' or 'current'. If an education or job "
+        "entry's start date isn't stated (e.g. only a graduation year, or a "
+        "job with no listed start date), omit start_date rather than "
+        "guessing one. If a job or certification states only a DURATION "
+        "(e.g. \"6 months\", \"2 years\", \"40 hours\") rather than an "
+        "actual date, omit that date field rather than writing the "
+        "duration. A skill's \"type\" is "
         "ONLY ever \"technical\" or \"soft\" — it classifies the KIND of "
         "skill, never how well the candidate knows it. If the resume states "
         "a proficiency or mastery level for a skill (e.g. \"Advanced\", "
@@ -207,10 +211,13 @@ def _build_work_experience_detail_prompt(
     resume_text: str,
     company: str,
     position: str,
-    start_date: date,
+    start_date: Optional[date],
     end_date: Optional[date],
 ) -> str:
-    date_range = f"{start_date.isoformat()} to {end_date.isoformat() if end_date else 'present'}"
+    date_range = (
+        f"{start_date.isoformat() if start_date else 'unknown start'} "
+        f"to {end_date.isoformat() if end_date else 'present'}"
+    )
     example = _WORK_EXPERIENCE_DETAIL_EXAMPLE.model_dump_json(indent=2)
     return (
         "Below is a candidate's full resume. Focus ONLY on the work "
@@ -355,7 +362,10 @@ def _extract_work_experience_detail(
             entry.company,
             first_error,
         )
-        date_range = f"{entry.start_date.isoformat()} to {entry.end_date.isoformat() if entry.end_date else 'present'}"
+        date_range = (
+            f"{entry.start_date.isoformat() if entry.start_date else 'unknown start'} "
+            f"to {entry.end_date.isoformat() if entry.end_date else 'present'}"
+        )
         focus_note = f'Focus ONLY on "{entry.position}" at "{entry.company}" ({date_range}).\n\n'
         retry_prompt = _build_retry_prompt(
             resume_text, first_error, _WORK_EXPERIENCE_DETAIL_EXAMPLE, focus_note

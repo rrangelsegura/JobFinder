@@ -187,6 +187,19 @@ def test_work_experience_detail_prompt_includes_job_identifying_info():
         end_date=None,
     )
     assert "Acme Corp" in prompt
+
+
+# work-experience-date-gaps: a real CV had no start date for a job — the
+# detail prompt builder must not crash calling .isoformat() on None.
+def test_work_experience_detail_prompt_handles_missing_start_date():
+    prompt = extraction_service._build_work_experience_detail_prompt(
+        "resume text",
+        company="Acme Corp",
+        position="Software Engineer",
+        start_date=None,
+        end_date=None,
+    )
+    assert "Acme Corp" in prompt
     assert "Software Engineer" in prompt
 
 
@@ -221,6 +234,20 @@ def test_extract_work_experience_detail_retries_once_then_raises(monkeypatch):
         extraction_service._extract_work_experience_detail("resume text", entry, "llama3:8b", "http://x")
 
     assert call_count["n"] == 2
+
+
+# work-experience-date-gaps: the retry-prompt's date_range builder must not
+# crash calling .isoformat() on a None start_date either.
+def test_extract_work_experience_detail_retry_handles_missing_start_date(monkeypatch):
+    entry = WorkExperienceEntry(company="Acme", position="Engineer")
+
+    def fake_call_ollama(prompt, model, base_url):
+        return DETAIL_INVALID_JSON
+
+    monkeypatch.setattr(extraction_service, "_call_ollama", fake_call_ollama)
+
+    with pytest.raises(extraction_service.LlmSchemaValidationError):
+        extraction_service._extract_work_experience_detail("resume text", entry, "llama3:8b", "http://x")
 
 
 # cv-extraction-multi-call: found via real-CV verification (not guessed) —

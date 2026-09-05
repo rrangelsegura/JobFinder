@@ -95,9 +95,52 @@ def test_certification_issue_date_accepts_year_month_only():
     assert entry.issue_date.isoformat() == "2021-03-01"
 
 
+# work-experience-date-gaps: a real CV wrote the full Spanish month name
+# with a comma ("mayo, 2012") rather than the 3-letter abbreviation this
+# normalizer already handled.
+def test_education_end_date_accepts_full_spanish_month_name():
+    entry = EducationEntry(institution="X", title="Y", end_date="mayo, 2012")
+    assert entry.end_date.isoformat() == "2012-05-01"
+
+
 def test_start_date_still_rejects_genuinely_invalid_values():
     with pytest.raises(ValueError):
         WorkExperienceEntry(company="Acme", position="Engineer", start_date="not a date")
+
+
+# work-experience-date-gaps: a real CV stated no start date for several
+# jobs — same "not stated" reasoning as EducationEntry.start_date.
+def test_work_experience_start_date_is_optional():
+    entry = WorkExperienceEntry(company="Acme", position="Engineer", end_date="2020-01-01")
+    assert entry.start_date is None
+
+
+def test_flat_work_experience_start_date_is_optional():
+    entry = FlatWorkExperienceEntry(company="Acme", position="Engineer")
+    assert entry.start_date is None
+
+
+# work-experience-date-gaps: a real CV stated a job's duration ("6 meses",
+# "6 años") instead of an actual end date — must normalize to None (not an
+# actual date), not fail validation.
+@pytest.mark.parametrize(
+    "duration", ["6 months", "2 years", "6 meses", "3 años", "10 days", "1 semana", "4.5 years"]
+)
+def test_duration_only_end_date_normalizes_to_none(duration):
+    entry = WorkExperienceEntry(company="Acme", position="Engineer", start_date="2020-01-01", end_date=duration)
+    assert entry.end_date is None
+
+
+def test_duration_only_start_date_normalizes_to_none():
+    entry = WorkExperienceEntry(company="Acme", position="Engineer", start_date="6 meses")
+    assert entry.start_date is None
+
+
+# work-experience-date-gaps: found one layer deeper on the same real CV —
+# a certification stated its course length ("40 horas") in issue_date.
+def test_duration_only_certification_issue_date_normalizes_to_none():
+    cert = CertificationEntry(name="Excel Avanzado", issue_date="40 horas")
+    assert cert.issue_date is None
 
 
 # cv-extraction-schema-gaps: a real CV's education entry stated only a

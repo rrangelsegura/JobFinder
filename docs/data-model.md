@@ -51,10 +51,10 @@ Represents work history and professional experience for candidates.
 - company: Name of the company or organization (max 100 characters)
 - position: Job title or position held (max 100 characters)
 - description: Description of responsibilities and achievements (optional, unbounded length — a real CV's job description exceeded the original 200-character limit, see cv-upload-hardening)
-- startDate: Start date of the work experience
-- endDate: End date of the work experience (optional, null if current)
+- startDate: Start date of the work experience (optional — some CVs state no start date for a job)
+- endDate: End date of the work experience (optional, null if current, or if the source only states a duration rather than an actual end date)
 - candidateId: Foreign key referencing the Candidate
-- **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (unbounded), Start date required.
+- **Validation Rules**: Company name required (max 100), Position required (max 100), Description optional (unbounded), start date and end date both optional.
 - **Relationships**: candidate (N:1), responsibilities (1:N), projects (1:N).
 
 **4. WorkExperienceResponsibility**

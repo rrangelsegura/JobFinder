@@ -158,6 +158,35 @@ describe("processCvExtractionJob", () => {
     );
   });
 
+  // work-experience-date-gaps: a real CV stated no start date for a job —
+  // must persist with a NULL startDate rather than failing the transaction.
+  it("persists a work experience entry with no start date as a NULL startDate", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...SUCCESS_RESPONSE,
+        work_experience: [
+          {
+            company: "Analytical Engines Ltd",
+            position: "Analyst",
+            start_date: null,
+            end_date: null,
+            responsibilities: [],
+            projects: [],
+          },
+        ],
+      }),
+    }) as any;
+
+    await processCvExtractionJob(buildJob());
+
+    expect(prisma.workExperience.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ company: "Analytical Engines Ltd", startDate: null }),
+      })
+    );
+  });
+
   // cv-extraction-schema-gaps: a stated proficiency level must persist
   // alongside the skill's type, not be forced into the type field.
   it("persists a skill's proficiency alongside its type", async () => {

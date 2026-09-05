@@ -67,7 +67,9 @@ model WorkExperience {
   // exceeded it and crashed the persistence transaction. Unbounded (maps to
   // Postgres TEXT) instead of guessing a "big enough" fixed length.
   description String?
-  startDate   DateTime
+  // work-experience-date-gaps: a real CV stated no start date for several
+  // jobs — nullable rather than fabricating a value (mirrors Education).
+  startDate   DateTime?
   endDate     DateTime?
 
   candidateId Int
