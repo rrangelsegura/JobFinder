@@ -13,6 +13,7 @@ export interface ExtractedCandidate {
 
 export interface ExtractionStatusData {
   status: "processing" | "completed" | "failed"
+  phase?: "queued" | "extracting" | "saving"
   candidate?: ExtractedCandidate
   error?: string
 }

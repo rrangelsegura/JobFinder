@@ -1,6 +1,17 @@
 export interface UploadStatusIndicatorProps {
   status: "processing" | "completed" | "failed"
+  phase?: "queued" | "extracting" | "saving"
   errorMessage?: string
+}
+
+// cv-extraction-progress-phases: phase-specific copy so a candidate isn't
+// staring at one static message for the several minutes extraction can
+// take. Falls back to the original generic message when phase is absent
+// (an old in-flight job, or a backend response that never included it).
+const PHASE_COPY: Record<"queued" | "extracting" | "saving", string> = {
+  queued: "Waiting to start…",
+  extracting: "Analyzing your CV — this can take a few minutes…",
+  saving: "Saving your profile…",
 }
 
 // specs/cv-upload-ui/spec.md: processing/completed/failed must render
@@ -8,10 +19,12 @@ export interface UploadStatusIndicatorProps {
 // failure must show non-technical copy, never the raw backend error.
 export function UploadStatusIndicator({
   status,
+  phase,
   errorMessage,
 }: UploadStatusIndicatorProps) {
   if (status === "processing") {
-    return <p role="status">Processing your CV…</p>
+    const copy = phase ? PHASE_COPY[phase] : "Processing your CV…"
+    return <p role="status">{copy}</p>
   }
 
   if (status === "completed") {

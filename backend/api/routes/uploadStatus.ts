@@ -43,10 +43,18 @@ uploadStatusRouter.get(
         return;
       }
 
-      // Any other BullMQ state (active, waiting, delayed, ...) is still processing.
+      // cv-extraction-progress-phases: "waiting"/"delayed" means the worker
+      // hasn't picked this job up yet at all — genuinely queued, not the
+      // same as "active" (worker running, progress may or may not be set
+      // yet). Any other BullMQ state is still processing.
+      const phase =
+        state === "waiting" || state === "delayed"
+          ? "queued"
+          : ((job.progress as { phase?: string } | undefined)?.phase ?? "extracting");
+
       res.status(200).json({
         status: "success",
-        data: { status: "processing" },
+        data: { status: "processing", phase },
         agent_trace_id: randomUUID(),
         model_used: null,
       });

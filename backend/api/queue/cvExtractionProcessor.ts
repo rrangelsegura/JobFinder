@@ -112,8 +112,15 @@ async function callAgent(data: CvExtractionJobData): Promise<CvExtractionResult>
  */
 export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Promise<CvExtractionResult> {
   const { candidateId, resumeId } = job.data;
+
+  // cv-extraction-progress-phases: these are the only two real steps this
+  // worker goes through — callAgent() is one opaque HTTP call covering OCR,
+  // LLM extraction, and embedding inside the Python service, so "extracting"
+  // is intentionally coarse rather than a false claim of finer visibility.
+  await job.updateProgress({ phase: "extracting" });
   const result = await callAgent(job.data);
 
+  await job.updateProgress({ phase: "saving" });
   await prisma.$transaction(async (tx) => {
     // Personal info goes on the Resume, not the Candidate — Candidate.email
     // is the login credential and must never be silently rewritten by resume

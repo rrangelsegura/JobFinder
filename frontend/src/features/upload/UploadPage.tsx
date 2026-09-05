@@ -30,6 +30,7 @@ export function UploadPage() {
         {data && (
           <UploadStatusIndicator
             status={data.status}
+            phase={data.phase}
             errorMessage={
               data.status === "failed"
                 ? mapExtractionErrorToUserMessage(data.error ?? "")
