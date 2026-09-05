@@ -3,9 +3,7 @@
 ## Purpose
 
 Lets an authenticated candidate submit a CV through the browser and observe its asynchronous processing state — through to completion or failure — without needing to poll the backend manually.
-
 ## Requirements
-
 ### Requirement: CV Submission from the Upload Section
 The Upload section SHALL let an authenticated candidate select and submit a PDF CV, invoking the existing `cv-upload` backend capability.
 
@@ -14,11 +12,27 @@ The Upload section SHALL let an authenticated candidate select and submit a PDF 
 - **THEN** the system calls `POST /uploads/cv` and, on `202`, begins tracking the returned job
 
 ### Requirement: Processing State Visibility
-While the extraction job is processing, the UI SHALL reflect a "processing" state rather than a blank screen or a state indistinguishable from success or failure.
+While the extraction job is processing, the UI SHALL reflect a "processing" state rather than a blank screen or a state indistinguishable from success or failure. When the backend reports a `phase` (`queued`, `extracting`, or `saving`), the UI SHALL show phase-specific copy rather than a single generic message. If no `phase` is present, the UI SHALL fall back to a generic processing message rather than failing to render.
 
 #### Scenario: Job still processing shows a processing indicator
 - **WHEN** the tracked job's status is `processing`
 - **THEN** the UI displays a visible processing indicator and does not display success or failure content
+
+#### Scenario: Queued phase shows queued-specific copy
+- **WHEN** the tracked job's status is `processing` with `phase: "queued"`
+- **THEN** the UI displays copy indicating the job is waiting to start
+
+#### Scenario: Extracting phase shows extracting-specific copy
+- **WHEN** the tracked job's status is `processing` with `phase: "extracting"`
+- **THEN** the UI displays copy indicating the CV is being analyzed, setting the expectation that this can take a few minutes
+
+#### Scenario: Saving phase shows saving-specific copy
+- **WHEN** the tracked job's status is `processing` with `phase: "saving"`
+- **THEN** the UI displays copy indicating the results are being saved
+
+#### Scenario: Missing phase falls back to generic processing copy
+- **WHEN** the tracked job's status is `processing` with no `phase` present
+- **THEN** the UI displays the generic "processing" message rather than an empty or broken state
 
 ### Requirement: Completion Reflected Without Manual Refresh
 Once the extraction job completes, the UI SHALL reflect success without requiring the candidate to reload the page or manually re-check.
@@ -51,3 +65,4 @@ When a CV extraction job fails for a system-side reason, the system SHALL send t
 #### Scenario: System-side failure triggers an acknowledgment email
 - **WHEN** a CV extraction job fails for a system-side reason (OCR or LLM schema validation)
 - **THEN** the system sends exactly one email to that candidate acknowledging the failure and that they'll be notified once resolved
+
