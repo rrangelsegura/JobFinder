@@ -31,28 +31,65 @@ _YEAR_ONLY_PATTERN = re.compile(r"^\d{4}$")
 # mixing English and Spanish month abbreviations to match how the source CV
 # itself writes them ("Dic 2022", "Ene 2020"). dateutil only recognizes
 # English month names, so Spanish ones are translated first.
+#
+# work-experience-date-gaps: a different real CV wrote out the full Spanish
+# month name with a comma ("mayo, 2012") rather than an abbreviation — added
+# the full names alongside the existing abbreviations.
 _SPANISH_MONTH_ALIASES = {
     "ene": "Jan",
+    "enero": "Jan",
     "feb": "Feb",
+    "febrero": "Feb",
     "mar": "Mar",
+    "marzo": "Mar",
     "abr": "Apr",
+    "abril": "Apr",
     "may": "May",
+    "mayo": "May",
     "jun": "Jun",
+    "junio": "Jun",
     "jul": "Jul",
+    "julio": "Jul",
     "ago": "Aug",
+    "agosto": "Aug",
     "sept": "Sep",
     "sep": "Sep",
+    "septiembre": "Sep",
+    "setiembre": "Sep",
     "oct": "Oct",
+    "octubre": "Oct",
     "nov": "Nov",
+    "noviembre": "Nov",
     "dic": "Dec",
+    "diciembre": "Dec",
 }
 _SPANISH_MONTH_PATTERN = re.compile(
     r"\b(" + "|".join(_SPANISH_MONTH_ALIASES) + r")\b", re.IGNORECASE
 )
 
 
+# work-experience-date-gaps: found via a real CV stating a job's duration
+# ("6 meses", "6 años") instead of an actual end date — this is not a
+# malformed date, it's a different kind of information entirely (how long,
+# not when), so it's recognized and dropped to None the same as "not
+# stated", rather than left for the fuzzy dateutil fallback (which could
+# misparse the leading number as a day) or failing Pydantic validation.
+_DURATION_ONLY_PATTERN = re.compile(
+    r"^\d+(\.\d+)?\s*"
+    r"(months?|years?|weeks?|days?|hours?|hrs?|"
+    r"meses?|a[ñn]os?|semanas?|d[ií]as?|horas?)\.?$",
+    re.IGNORECASE,
+)
+
+
 def _normalize_ongoing_date(value: Any) -> Any:
     if isinstance(value, str) and value.strip().lower() in ONGOING_END_DATE_TOKENS:
+        return None
+    return value
+
+
+def _normalize_duration_only_value(value: Any) -> Any:
+    if isinstance(value, str) and _DURATION_ONLY_PATTERN.match(value.strip()):
         return None
     return value
 
@@ -82,7 +119,7 @@ def _normalize_partial_date(value: Any) -> Any:
 
 
 def _normalize_date_value(value: Any) -> Any:
-    return _normalize_partial_date(_normalize_ongoing_date(value))
+    return _normalize_partial_date(_normalize_duration_only_value(_normalize_ongoing_date(value)))
 
 
 class SkillType(str, Enum):
@@ -131,7 +168,9 @@ class WorkExperienceEntry(BaseModel):
     company: str
     position: str
     description: Optional[str] = None
-    start_date: date
+    # work-experience-date-gaps: a real CV stated no start date for several
+    # jobs — same "not stated" reasoning as EducationEntry.start_date.
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     # work-experience-detail: role-level duties (responsibilities) vs.
     # specific initiatives with their own achievements/stack (projects) —
@@ -156,7 +195,7 @@ class FlatWorkExperienceEntry(BaseModel):
     company: str
     position: str
     description: Optional[str] = None
-    start_date: date
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
 
     _normalize_dates = field_validator("start_date", "end_date", mode="before")(_normalize_date_value)

@@ -30,7 +30,7 @@ interface WorkExperienceEntry {
   company: string;
   position: string;
   description?: string | null;
-  start_date: string;
+  start_date?: string | null;
   end_date?: string | null;
   responsibilities: string[];
   projects: ProjectEntry[];
@@ -160,7 +160,7 @@ export async function processCvExtractionJob(job: Job<CvExtractionJobData>): Pro
           company: w.company,
           position: w.position,
           description: w.description ?? null,
-          startDate: new Date(w.start_date),
+          startDate: w.start_date ? new Date(w.start_date) : null,
           endDate: w.end_date ? new Date(w.end_date) : null,
           candidateId,
         },
