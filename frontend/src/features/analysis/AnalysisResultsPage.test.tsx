@@ -64,9 +64,18 @@ const POPULATED_RESPONSE = {
           ],
         },
       ],
-      skills: [{ id: 1, name: "Mathematics", type: "technical", proficiency: "Advanced" }],
+      skills: [
+        {
+          id: 1,
+          name: "Mathematics",
+          type: "technical",
+          proficiency: "Advanced",
+        },
+      ],
       languages: [{ id: 1, name: "English", proficiency: "native" }],
-      certifications: [{ id: 1, name: "Royal Society Fellow", issuer: null, issueDate: null }],
+      certifications: [
+        { id: 1, name: "Royal Society Fellow", issuer: null, issueDate: null },
+      ],
     },
     agent_trace_id: "trace-1",
     model_used: null,
@@ -93,7 +102,9 @@ describe("AnalysisResultsPage", () => {
     render(<AnalysisResultsPage />, { wrapper })
 
     await waitFor(() =>
-      expect(screen.getByText(/no analysis available yet/i)).toBeInTheDocument(),
+      expect(
+        screen.getByText(/no analysis available yet/i),
+      ).toBeInTheDocument(),
     )
     const uploadLink = screen.getByRole("link", { name: /go to upload/i })
     expect(uploadLink).toHaveAttribute("href", "/workspace/upload")
@@ -104,7 +115,9 @@ describe("AnalysisResultsPage", () => {
 
     render(<AnalysisResultsPage />, { wrapper })
 
-    await waitFor(() => expect(screen.getByText("Ada Lovelace")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText("Ada Lovelace")).toBeInTheDocument(),
+    )
     expect(screen.getByText("Cambridge")).toBeInTheDocument()
     expect(screen.getByText("Analytical Engines Ltd")).toBeInTheDocument()
     expect(screen.getByText("Designed the algorithm")).toBeInTheDocument()
@@ -120,7 +133,9 @@ describe("AnalysisResultsPage", () => {
 
     render(<AnalysisResultsPage />, { wrapper })
 
-    await waitFor(() => expect(screen.getByText("Ada Lovelace")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText("Ada Lovelace")).toBeInTheDocument(),
+    )
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
   })

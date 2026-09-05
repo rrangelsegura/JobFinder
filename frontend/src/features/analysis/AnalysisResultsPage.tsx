@@ -13,9 +13,16 @@ import {
 // component — getUTCFullYear (not getFullYear) avoids the local-timezone
 // rollback that would otherwise show the wrong year west of UTC (e.g.
 // "1840-01-01T00:00:00Z" reading as 1839 in a negative-offset timezone).
-function formatDateRange(startDate: string | null, endDate: string | null): string {
-  const start = startDate ? new Date(startDate).getUTCFullYear().toString() : "Unknown"
-  const end = endDate ? new Date(endDate).getUTCFullYear().toString() : "Present"
+function formatDateRange(
+  startDate: string | null,
+  endDate: string | null,
+): string {
+  const start = startDate
+    ? new Date(startDate).getUTCFullYear().toString()
+    : "Unknown"
+  const end = endDate
+    ? new Date(endDate).getUTCFullYear().toString()
+    : "Present"
   return `${start} – ${end}`
 }
 
@@ -72,7 +79,9 @@ function WorkExperienceSection({ items }: { items: WorkExperienceItem[] }) {
                   <div key={project.id} className="rounded-md bg-muted/40 p-2">
                     <p className="text-sm font-medium">{project.name}</p>
                     {project.description && (
-                      <p className="text-sm text-muted-foreground">{project.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {project.description}
+                      </p>
                     )}
                     {project.achievements.length > 0 && (
                       <ul className="mt-1 list-disc pl-5 text-sm">
@@ -152,7 +161,9 @@ function CertificationsSection({ items }: { items: CertificationItem[] }) {
         {items.map((item) => (
           <li key={item.id} className="rounded-lg border border-border p-3">
             <p className="font-medium">{item.name}</p>
-            {item.issuer && <p className="text-sm text-muted-foreground">{item.issuer}</p>}
+            {item.issuer && (
+              <p className="text-sm text-muted-foreground">{item.issuer}</p>
+            )}
           </li>
         ))}
       </ul>
@@ -185,7 +196,10 @@ export function AnalysisResultsPage() {
           <p className="text-sm text-muted-foreground">
             No analysis available yet. Upload a CV to get started.
           </p>
-          <Link to="/workspace/upload" className="text-sm font-medium underline">
+          <Link
+            to="/workspace/upload"
+            className="text-sm font-medium underline"
+          >
             Go to Upload
           </Link>
         </CardContent>
@@ -193,7 +207,14 @@ export function AnalysisResultsPage() {
     )
   }
 
-  const { personalInfo, education, workExperience, skills, languages, certifications } = data
+  const {
+    personalInfo,
+    education,
+    workExperience,
+    skills,
+    languages,
+    certifications,
+  } = data
 
   return (
     <Card className="max-w-2xl">
@@ -208,9 +229,15 @@ export function AnalysisResultsPage() {
           <p className="font-medium">
             {personalInfo.firstName} {personalInfo.lastName}
           </p>
-          {personalInfo.email && <p className="text-sm">{personalInfo.email}</p>}
-          {personalInfo.phone && <p className="text-sm">{personalInfo.phone}</p>}
-          {personalInfo.address && <p className="text-sm">{personalInfo.address}</p>}
+          {personalInfo.email && (
+            <p className="text-sm">{personalInfo.email}</p>
+          )}
+          {personalInfo.phone && (
+            <p className="text-sm">{personalInfo.phone}</p>
+          )}
+          {personalInfo.address && (
+            <p className="text-sm">{personalInfo.address}</p>
+          )}
         </section>
 
         <EducationSection items={education} />

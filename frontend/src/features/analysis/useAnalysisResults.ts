@@ -91,7 +91,8 @@ interface AnalysisResultsResponse {
 }
 
 async function fetchAnalysisResults(): Promise<AnalysisResultsData> {
-  const { data } = await apiClient.get<AnalysisResultsResponse>("/candidates/me")
+  const { data } =
+    await apiClient.get<AnalysisResultsResponse>("/candidates/me")
   return data.data
 }
 
