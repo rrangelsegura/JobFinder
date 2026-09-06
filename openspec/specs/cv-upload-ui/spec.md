@@ -35,11 +35,15 @@ While the extraction job is processing, the UI SHALL reflect a "processing" stat
 - **THEN** the UI displays the generic "processing" message rather than an empty or broken state
 
 ### Requirement: Completion Reflected Without Manual Refresh
-Once the extraction job completes, the UI SHALL reflect success without requiring the candidate to reload the page or manually re-check.
+Once the extraction job completes, the UI SHALL reflect success without requiring the candidate to reload the page or manually re-check. The success state SHALL display how long the extraction took, in human-readable form.
 
 #### Scenario: Job completes while the candidate is on the page
 - **WHEN** the tracked job's status transitions to `completed`
 - **THEN** the UI updates to a success state automatically, without a page reload
+
+#### Scenario: Success state shows the elapsed time
+- **WHEN** the tracked job's status transitions to `completed` with a `durationMs` value
+- **THEN** the UI displays that duration in human-readable form (e.g. seconds, or minutes and seconds) alongside the success message
 
 ### Requirement: Non-Technical Failure Messaging
 On extraction failure, the UI SHALL show a clear, non-technical error message. It SHALL NOT render the backend's raw internal error string. For a system-side failure (OCR or LLM extraction, as opposed to a problem with the candidate's file itself), the message SHALL make clear the failure is JobFinder's issue, not something the candidate needs to fix, and SHALL NOT instruct the candidate to simply try again.
