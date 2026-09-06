@@ -23,10 +23,18 @@ uploadStatusRouter.get(
 
       const state = await job.getState();
 
+      // cv-extraction-duration: job.timestamp (set when POST /uploads/cv
+      // enqueued it) and job.finishedOn (set the moment the worker resolves
+      // or rejects) are both already tracked by BullMQ on every job —
+      // nothing new to store, just surfacing their difference.
       if (state === "completed") {
         res.status(200).json({
           status: "success",
-          data: { status: "completed", candidate: job.returnvalue },
+          data: {
+            status: "completed",
+            candidate: job.returnvalue,
+            durationMs: (job.finishedOn ?? Date.now()) - job.timestamp,
+          },
           agent_trace_id: randomUUID(),
           model_used: null,
         });
@@ -36,7 +44,11 @@ uploadStatusRouter.get(
       if (state === "failed") {
         res.status(200).json({
           status: "success",
-          data: { status: "failed", error: job.failedReason },
+          data: {
+            status: "failed",
+            error: job.failedReason,
+            durationMs: (job.finishedOn ?? Date.now()) - job.timestamp,
+          },
           agent_trace_id: randomUUID(),
           model_used: null,
         });
@@ -50,7 +62,8 @@ uploadStatusRouter.get(
       const phase =
         state === "waiting" || state === "delayed"
           ? "queued"
-          : ((job.progress as { phase?: string } | undefined)?.phase ?? "extracting");
+          : ((job.progress as { phase?: string } | undefined)?.phase ??
+            "extracting");
 
       res.status(200).json({
         status: "success",
@@ -61,5 +74,5 @@ uploadStatusRouter.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
