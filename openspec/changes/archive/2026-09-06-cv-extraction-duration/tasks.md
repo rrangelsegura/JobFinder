@@ -44,7 +44,7 @@
 
 ## 8. Close Out
 
-- [ ] 8.1 Push branch, open PR (required — `main` is protected)
-- [ ] 8.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 8.3 Merge once steps 5-7 pass and the project owner confirms explicitly
-- [ ] 8.4 Propose `openspec archive cv-extraction-duration` per the project's standard change lifecycle
+- [x] 8.1 Push branch, open PR (required — `main` is protected)
+- [x] 8.2 Confirm all three CI checks pass and the PR is mergeable
+- [x] 8.3 Merge once steps 5-7 pass and the project owner confirms explicitly
+- [x] 8.4 Propose `openspec archive cv-extraction-duration` per the project's standard change lifecycle
