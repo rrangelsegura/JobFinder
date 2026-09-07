@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useSession } from "@/features/auth/useSession"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { CvUploadForm } from "./CvUploadForm"
@@ -8,22 +8,22 @@ import { mapExtractionErrorToUserMessage } from "./errorMessages"
 import { getStoredJobId, setStoredJobId } from "./cvUploadJobStorage"
 
 export function UploadPage() {
-  const [jobId, setJobId] = useState<string | null>(null)
-  const { data } = useCvExtractionStatus(jobId)
   const { candidateId, email: accountEmail } = useSession()
 
   // cv-upload-tracking-persistence: without this, navigating away from
   // Upload and back (or reloading the page) loses all track of an
-  // in-flight or just-finished job — see design.md. Only reads storage
-  // once candidateId resolves, so it never reads an unscoped/wrong key.
-  useEffect(() => {
-    if (candidateId === null) return
-    const storedJobId = getStoredJobId(candidateId)
-    if (storedJobId) setJobId(storedJobId)
-  }, [candidateId])
+  // in-flight or just-finished job — see design.md. Derived at render
+  // time (not synced via an effect + setState, which would trigger a
+  // cascading re-render) — a plain localStorage.getItem is a cheap,
+  // side-effect-free read. Only reads once candidateId resolves, so it
+  // never reads an unscoped/wrong key.
+  const [manualJobId, setManualJobId] = useState<string | null>(null)
+  const jobId =
+    manualJobId ?? (candidateId !== null ? getStoredJobId(candidateId) : null)
+  const { data } = useCvExtractionStatus(jobId)
 
   function trackJob(newJobId: string) {
-    setJobId(newJobId)
+    setManualJobId(newJobId)
     if (candidateId !== null) setStoredJobId(candidateId, newJobId)
   }
 

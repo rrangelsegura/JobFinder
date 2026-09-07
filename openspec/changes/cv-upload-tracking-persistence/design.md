@@ -19,7 +19,9 @@
 Scoping by candidate id (available from the existing `useSession()`) means two different candidates sharing a browser never see each other's job — each key is independent. A single unscoped key would leak candidate A's `jobId` into candidate B's session.
 
 **2. Rehydrate only once `candidateId` is known, not before.**
-`useSession()` resolves asynchronously. Reading `localStorage` before `candidateId` is known would mean either using an unscoped fallback key (the leak this design avoids) or guessing. Instead, the stored job id is read in an effect that depends on `candidateId`, so it only ever reads the correctly-scoped key. This means there's a brief moment on first render (before the session query resolves) where the upload form flashes before the real state renders — the same class of brief-loading-flash this app already accepts elsewhere (e.g. `useSession`'s own `isLoading`), not a new pattern.
+`useSession()` resolves asynchronously. Reading `localStorage` before `candidateId` is known would mean either using an unscoped fallback key (the leak this design avoids) or guessing. Instead, the stored job id is derived at render time — `manualJobId ?? (candidateId !== null ? getStoredJobId(candidateId) : null)` — so it only ever reads the correctly-scoped key once `candidateId` resolves. This means there's a brief moment on first render (before the session query resolves) where the upload form flashes before the real state renders — the same class of brief-loading-flash this app already accepts elsewhere (e.g. `useSession`'s own `isLoading`), not a new pattern.
+
+Deriving this at render time rather than syncing it via `useEffect` + `setState` is also what this project's lint config (`react-hooks/set-state-in-effect`) requires — calling `setState` synchronously inside an effect body is flagged as a cascading-render risk. `localStorage.getItem` is a cheap, side-effect-free read, so computing `jobId` directly during render (no effect at all) is both the idiomatic fix and simpler than the effect this design originally sketched.
 
 **3. A small `cvUploadJobStorage.ts` helper, not inline `localStorage` calls.**
 `get`/`set` wrapped in `try/catch` (a private browsing mode or a user with storage disabled can throw on access) so a storage failure degrades to today's behavior (job tracking lost on navigation) rather than crashing the page. Keeping this in one small module also makes it directly unit-testable without mocking `localStorage` inside `UploadPage`'s own test file.
@@ -27,5 +29,5 @@ Scoping by candidate id (available from the existing `useSession()`) means two d
 ## Migration Plan
 
 1. Add `frontend/src/features/upload/cvUploadJobStorage.ts` — `getStoredJobId(candidateId)`, `setStoredJobId(candidateId, jobId)`, wrapped in `try/catch`.
-2. `UploadPage.tsx`: read `candidateId` from `useSession()` (already imports it for `accountEmail`), rehydrate `jobId` from storage in an effect keyed on `candidateId`, and persist new job ids through the same helper when `CvUploadForm` reports one.
+2. `UploadPage.tsx`: read `candidateId` from `useSession()` (already imports it for `accountEmail`), derive `jobId` at render time from storage once `candidateId` is known, and persist new job ids through the same helper when `CvUploadForm` reports one.
 3. Rollback: revert the two files — purely additive, `useCvExtractionStatus`/`UploadStatusIndicator` untouched.
