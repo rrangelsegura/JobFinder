@@ -10,27 +10,27 @@
 
 ## 2. Backend: Prompt Fixes
 
-- [ ] 2.1 `_build_extraction_prompt`: extend the skill-type sentence to explicitly classify tools/frameworks/platforms/technologies as `technical`
-- [ ] 2.2 `_build_retry_prompt`: replace the full serialized worked example with a short field-name reminder derived from the example's own model fields
+- [x] 2.1 `_build_extraction_prompt`: extend the skill-type sentence to explicitly classify tools/frameworks/platforms/technologies as `technical`
+- [x] 2.2 `_build_retry_prompt`: replace the full serialized worked example with a short field-name reminder derived from the example's own model fields
 
 ## 3. Backend: Tests (TDD)
 
-- [ ] 3.1 `_build_extraction_prompt` mentions tools/frameworks/platforms as `technical` (extends the existing skill-type test)
-- [ ] 3.2 `_build_retry_prompt`'s output does not contain the full worked example's placeholder content (e.g. `"Jane"`, `"Acme Corp"`) for the flat-extraction retry
-- [ ] 3.3 Same, for the work-experience-detail retry (shared builder)
-- [ ] 3.4 Existing retry tests (`test_retry_prompt_includes_the_previous_error_for_the_llm_to_fix`, `test_retry_prompt_does_not_repeat_the_full_previous_output`, `test_retry_prompt_caps_a_large_validation_error_summary`) still pass unmodified
+- [x] 3.1 `_build_extraction_prompt` mentions tools/frameworks/platforms as `technical` (extends the existing skill-type test)
+- [x] 3.2 `_build_retry_prompt`'s output does not contain the full worked example's placeholder content (e.g. `"Jane"`, `"Acme Corp"`) for the flat-extraction retry
+- [x] 3.3 Same, for the work-experience-detail retry (shared builder)
+- [x] 3.4 Existing retry tests (`test_retry_prompt_includes_the_previous_error_for_the_llm_to_fix`, `test_retry_prompt_does_not_repeat_the_full_previous_output`, `test_retry_prompt_caps_a_large_validation_error_summary`) still pass unmodified
 
 ## 4. Run Unit Tests and Verify (MANDATORY)
 
-- [ ] 4.1 Run the full local suite (Jest backend/, pytest backend/, Vitest frontend/) — confirm green (this change is Python-only; Jest/Vitest are regression checks)
-- [ ] 4.2 Both builds clean, lint/format clean
-- [ ] 4.3 Create verification report at `openspec/changes/cv-extraction-retry-hardening/specs/cv-extraction/reports/YYYY-MM-DD-step-4-unit-test-verification.md`
+- [x] 4.1 Run the full local suite (Jest backend/, pytest backend/, Vitest frontend/) — confirm green (this change is Python-only; Jest/Vitest are regression checks)
+- [x] 4.2 Both builds clean, lint/format clean
+- [x] 4.3 Create verification report at `openspec/changes/cv-extraction-retry-hardening/specs/cv-extraction/reports/YYYY-MM-DD-step-4-unit-test-verification.md`
 
 ## 5. Manual Verification Against the Real Failing CV (MANDATORY)
 
-- [ ] 5.1 Re-upload the exact CV that failed (resume id 5) against the fixed code and confirm it now extracts successfully
-- [ ] 5.2 Confirm no skill is classified with a non-`technical`/`soft` type in the result
-- [ ] 5.3 Document the before/after in the same report as step 4
+- [x] 5.1 Re-upload the exact CV that failed (resume id 5) against the fixed code and confirm it now extracts successfully
+- [x] 5.2 Confirm no skill is classified with a non-`technical`/`soft` type in the result
+- [x] 5.3 Document the before/after in the same report as step 4
 
 ## 6. Close Out
 
