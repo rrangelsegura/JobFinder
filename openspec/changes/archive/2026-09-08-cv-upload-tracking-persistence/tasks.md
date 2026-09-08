@@ -39,7 +39,7 @@
 
 ## 7. Close Out
 
-- [ ] 7.1 Push branch, open PR (required — `main` is protected)
-- [ ] 7.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 7.3 Merge once steps 5-6 pass and the project owner confirms explicitly
-- [ ] 7.4 Propose `openspec archive cv-upload-tracking-persistence` per the project's standard change lifecycle
+- [x] 7.1 Push branch, open PR (required — `main` is protected)
+- [x] 7.2 Confirm all three CI checks pass and the PR is mergeable
+- [x] 7.3 Merge once steps 5-6 pass and the project owner confirms explicitly
+- [x] 7.4 Propose `openspec archive cv-upload-tracking-persistence` per the project's standard change lifecycle
