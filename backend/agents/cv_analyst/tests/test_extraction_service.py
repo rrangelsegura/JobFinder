@@ -167,6 +167,17 @@ def test_extraction_prompt_explains_skill_type_versus_proficiency():
     assert "technical" in prompt.lower() and "soft" in prompt.lower()
 
 
+# cv-extraction-retry-hardening: reproduced against a real CV — the LLM
+# classified tools/platforms (Docker, Git, AWS) as a skill "type" of "tool",
+# which isn't in the {technical, soft} enum, triggering a retry that then
+# failed from context-budget truncation. Closing this at the source (the
+# first prompt) avoids needing that retry at all for this class of mistake.
+def test_extraction_prompt_classifies_tools_and_platforms_as_technical():
+    prompt = extraction_service._build_extraction_prompt("resume text").lower()
+    assert "tool" in prompt
+    assert "framework" in prompt or "platform" in prompt
+
+
 # Same repetition-degradation lesson as skills/education above, now applied to
 # the detail call's own worked example instead of the flat one.
 def test_work_experience_detail_example_shows_multiple_projects_with_depth():
@@ -435,3 +446,47 @@ def test_retry_prompt_caps_a_large_validation_error_summary(monkeypatch):
     # the retry prompt should summarize/dedupe 20 near-identical errors, not
     # include a full line for every one of them
     assert retry_prompt.count("skills.") < 20
+
+
+# cv-extraction-retry-hardening: reproduced against a real CV — the retry
+# prompt re-serialized the full worked example on top of the error summary
+# and the full resume text, and for a detailed real CV this pushed the
+# retry close enough to llama3:8b's fixed 8192-token context ceiling that
+# its JSON output was truncated mid-object. The model already produced
+# roughly-correct-shaped JSON (that's what triggered a validation retry, as
+# opposed to a shape failure) — it doesn't need the full example replayed.
+def test_retry_prompt_does_not_repeat_the_full_worked_example(monkeypatch):
+    captured_prompts = []
+
+    def fake_call_ollama(prompt, model, base_url):
+        captured_prompts.append(prompt)
+        return INVALID_JSON if len(captured_prompts) == 1 else VALID_JSON
+
+    monkeypatch.setattr(extraction_service, "_call_ollama", fake_call_ollama)
+
+    extraction_service.extract_structured_data("resume text", model="llama3:8b")
+
+    initial_prompt, retry_prompt = captured_prompts
+    # the initial prompt does include the full worked example (placeholder
+    # data from _FLAT_EXAMPLE_RESULT) — the retry prompt should not repeat it
+    assert "Jane" in initial_prompt and "Acme Corp" in initial_prompt
+    assert "Jane" not in retry_prompt
+    assert "Acme Corp" not in retry_prompt
+
+
+def test_work_experience_detail_retry_prompt_does_not_repeat_the_full_worked_example(monkeypatch):
+    entry = WorkExperienceEntry(company="Acme", position="Engineer", start_date="2020-01-01")
+    captured_prompts = []
+
+    def fake_call_ollama(prompt, model, base_url):
+        captured_prompts.append(prompt)
+        return DETAIL_INVALID_JSON if len(captured_prompts) == 1 else DETAIL_JSON_ACME
+
+    monkeypatch.setattr(extraction_service, "_call_ollama", fake_call_ollama)
+
+    extraction_service._extract_work_experience_detail("resume text", entry, "llama3:8b", "http://x")
+
+    initial_prompt, retry_prompt = captured_prompts
+    # placeholder content from _WORK_EXPERIENCE_DETAIL_EXAMPLE
+    assert "Checkout Revamp" in initial_prompt
+    assert "Checkout Revamp" not in retry_prompt

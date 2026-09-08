@@ -199,7 +199,10 @@ def _build_extraction_prompt(resume_text: str) -> str:
         "actual date, omit that date field rather than writing the "
         "duration. A skill's \"type\" is "
         "ONLY ever \"technical\" or \"soft\" — it classifies the KIND of "
-        "skill, never how well the candidate knows it. If the resume states "
+        "skill, never how well the candidate knows it. Tools, frameworks, "
+        "platforms, and any other technology (e.g. Docker, Git, AWS, "
+        "React) are ALL \"technical\" — never invent a third category "
+        "like \"tool\" for them. If the resume states "
         "a proficiency or mastery level for a skill (e.g. \"Advanced\", "
         "\"Intermediate\"), put that in the skill's \"proficiency\" field "
         "instead, never in \"type\".\n\n"
@@ -268,17 +271,27 @@ def _build_retry_prompt(
     example: BaseModel,
     focus_note: str = "",
 ) -> str:
-    example_json = example.model_dump_json(indent=2)
+    # cv-extraction-retry-hardening: this used to re-serialize the full
+    # worked example (example.model_dump_json(indent=2)) here — the single
+    # largest addition the retry prompt made over the original. A retry
+    # means the model already produced roughly-correct-shaped JSON (that's
+    # what triggered a validation error, as opposed to a shape failure), so
+    # replaying the whole example a second time spends context budget the
+    # retry needs more for the resume text and its own completion. A short
+    # field-name reminder plus the error summary (which already quotes the
+    # correct value inline, e.g. "Input should be 'technical' or 'soft'")
+    # is enough to fix specific field mistakes without re-teaching the shape.
+    field_names = ", ".join(type(example).model_fields.keys())
     error_summary = _summarize_validation_errors(error)
     return (
         "Your previous JSON output failed schema validation. Here is a "
         f"summary of what was wrong (not every occurrence, just the distinct "
         f"kinds of mistakes):\n{error_summary}\n\n"
         f"{focus_note}"
-        "Here is the exact structure required again, as a worked "
-        f"example with placeholder data:\n\n{example_json}\n\n"
-        "Fix those mistakes and return ONLY corrected JSON matching that "
-        f"shape exactly, for this resume text:\n{resume_text}"
+        "Return ONLY corrected JSON with exactly these top-level fields: "
+        f"{field_names}. Keep the same object shapes you were already given "
+        "for each field — just fix the mistakes listed above — for this "
+        f"resume text:\n{resume_text}"
     )
 
 
