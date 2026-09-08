@@ -6,6 +6,7 @@ import { vi } from "vitest"
 import { UploadPage } from "./UploadPage"
 import { apiClient } from "@/lib/apiClient"
 import { useSession } from "@/features/auth/useSession"
+import { setStoredJobId } from "./cvUploadJobStorage"
 
 vi.mock("@/lib/apiClient", () => ({
   apiClient: { post: vi.fn(), get: vi.fn() },
@@ -33,6 +34,7 @@ function pdfFile() {
 
 describe("UploadPage", () => {
   beforeEach(() => {
+    localStorage.clear()
     mockedPost.mockReset()
     mockedGet.mockReset()
     mockedUseSession.mockReturnValue({
@@ -191,5 +193,37 @@ describe("UploadPage", () => {
     expect(
       screen.queryByText(/different from your account email/i),
     ).not.toBeInTheDocument()
+  })
+
+  // Spec: "Returning to the Upload page resumes tracking an in-flight job"
+  // and "...after the job finished elsewhere shows the final result"
+  it("resumes tracking a job already stored for the current candidate on mount", async () => {
+    setStoredJobId(1, "job-resumed")
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        status: "success",
+        data: { status: "completed", candidate: {}, durationMs: 21_000 },
+        agent_trace_id: "trace-resumed",
+        model_used: null,
+      },
+    })
+
+    render(<UploadPage />, { wrapper })
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/success|complete/i),
+    )
+    expect(mockedPost).not.toHaveBeenCalled()
+  })
+
+  // Spec: "A different candidate on the same browser never sees another
+  // candidate's tracked job"
+  it("does not resume a job stored under a different candidate id", async () => {
+    setStoredJobId(999, "job-belongs-to-someone-else")
+
+    render(<UploadPage />, { wrapper })
+
+    expect(await screen.findByLabelText(/cv/i)).toBeInTheDocument()
+    expect(mockedGet).not.toHaveBeenCalled()
   })
 })
