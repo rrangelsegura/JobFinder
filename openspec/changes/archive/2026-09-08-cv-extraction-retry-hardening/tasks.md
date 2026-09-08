@@ -34,7 +34,7 @@
 
 ## 6. Close Out
 
-- [ ] 6.1 Push branch, open PR (required — `main` is protected)
-- [ ] 6.2 Confirm all three CI checks pass and the PR is mergeable
-- [ ] 6.3 Merge once steps 4-5 pass and the project owner confirms explicitly
-- [ ] 6.4 Propose `openspec archive cv-extraction-retry-hardening` per the project's standard change lifecycle
+- [x] 6.1 Push branch, open PR (required — `main` is protected)
+- [x] 6.2 Confirm all three CI checks pass and the PR is mergeable
+- [x] 6.3 Merge once steps 4-5 pass and the project owner confirms explicitly
+- [x] 6.4 Propose `openspec archive cv-extraction-retry-hardening` per the project's standard change lifecycle
