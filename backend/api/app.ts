@@ -5,6 +5,7 @@ import { uploadsRouter } from "./routes/uploads";
 import { uploadStatusRouter } from "./routes/uploadStatus";
 import { authRouter } from "./routes/auth";
 import { candidatesRouter } from "./routes/candidates";
+import { invitationsRouter } from "./routes/invitations";
 
 // `frontend/` (candidate-workspace) is the first browser-based client this
 // API has ever had, so cross-origin requests from the Vite dev server were
@@ -29,6 +30,7 @@ export function createApp(): Express {
   app.use(uploadsRouter);
   app.use(uploadStatusRouter);
   app.use(candidatesRouter);
+  app.use(invitationsRouter);
 
   return app;
 }

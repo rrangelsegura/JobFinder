@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from agents.cv_analyst.router import router as cv_analyst_router
+from agents.invitation_responder.router import router as invitation_responder_router
 
 app = FastAPI(title="JobFinder Agentic Core")
 
@@ -11,3 +12,4 @@ def health() -> dict:
 
 
 app.include_router(cv_analyst_router)
+app.include_router(invitation_responder_router)

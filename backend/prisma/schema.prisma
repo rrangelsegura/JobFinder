@@ -38,6 +38,7 @@ model Candidate {
   skills          Skill[]
   languages       Language[]
   certifications  Certification[]
+  jobInvitations  JobInvitation[]
 
   @@map("candidates")
 }
@@ -158,12 +159,12 @@ model Resume {
 }
 
 model Skill {
-  id   Int       @id @default(autoincrement())
-  name String    @db.VarChar(100)
-  type SkillType
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  type        SkillType
   // cv-extraction-schema-gaps: mirrors Language.proficiency — a stated
   // mastery level, free-text since CVs phrase it inconsistently.
-  proficiency String? @db.VarChar(50)
+  proficiency String?   @db.VarChar(50)
 
   candidateId Int
   candidate   Candidate @relation(fields: [candidateId], references: [id])
@@ -192,4 +193,54 @@ model Certification {
   candidate   Candidate @relation(fields: [candidateId], references: [id])
 
   @@map("certifications")
+}
+
+// respond-to-job-invitation: where an invitation text came from. Only
+// manual_text is produced today; the LinkedIn values exist so the planned
+// daily monitor can reuse this table without another migration.
+enum InvitationSource {
+  manual_text
+  linkedin_message
+  linkedin_notification
+}
+
+enum InvitationIntent {
+  interested
+  request_more_info
+  decline
+}
+
+enum InvitationStatus {
+  processing
+  completed
+  failed
+}
+
+// respond-to-job-invitation: one recruiter invitation and the reply draft
+// generated for it. Drafts are advisory — nothing here is ever sent.
+//
+// The unique index lets an automated source de-duplicate by (candidate,
+// source, externalId). Postgres treats NULLs as distinct in unique indexes,
+// so manual submissions (externalId = NULL) may repeat freely.
+model JobInvitation {
+  id             Int              @id @default(autoincrement())
+  source         InvitationSource @default(manual_text)
+  externalId     String?          @db.VarChar(255)
+  rawText        String           @db.Text
+  intent         InvitationIntent @default(interested)
+  status         InvitationStatus @default(processing)
+  recruiterName  String?          @db.VarChar(200)
+  recruiterTitle String?          @db.VarChar(250)
+  company        String?          @db.VarChar(250)
+  roleTitle      String?          @db.VarChar(250)
+  location       String?          @db.VarChar(250)
+  language       String?          @db.VarChar(10)
+  callToAction   String?          @db.VarChar(500)
+  draftReply     String?          @db.Text
+  createdAt      DateTime         @default(now())
+  candidateId    Int
+  candidate      Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, source, externalId])
+  @@map("job_invitations")
 }

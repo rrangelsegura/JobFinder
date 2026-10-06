@@ -41,7 +41,7 @@ link_skills_library() {
   else
     log "cloning skills library from $SKILLS_REPO_URL"
     if ! timeout 300 git clone --depth 1 -q "$SKILLS_REPO_URL" "$SKILLS_LIBRARY_DIR" 2>/dev/null; then
-      log "WARNING: could not clone $SKILLS_REPO_URL. It is private: attach it to the session (add_repo) or set a GitHub token in the environment secrets."
+      log "WARNING: could not clone $SKILLS_REPO_URL. It is private and this session's GitHub access only covers the repositories selected when the session started. Start a new session with rrangelsegura/skills-library selected (or attach it with add_repo), and make sure GitHub is connected at https://claude.ai/connect-github."
       return 1
     fi
   fi
