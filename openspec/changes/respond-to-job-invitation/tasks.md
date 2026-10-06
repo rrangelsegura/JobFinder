@@ -41,21 +41,23 @@
 
 ## 7. Run Unit Tests and Verify Database State (MANDATORY)
 
-- [ ] 7.1 Capture pre-test DB baseline, run targeted then full suites (Jest, pytest, Vitest), verify post-test DB state
-- [ ] 7.2 Create report `openspec/changes/respond-to-job-invitation/specs/job-invitation-reply/reports/YYYY-MM-DD-step-7-unit-test-and-db-verification.md`
+- [x] 7.1 Capture pre-test DB baseline, run targeted then full suites (Jest, pytest, Vitest), verify post-test DB state
+- [x] 7.2 Create report `openspec/changes/respond-to-job-invitation/specs/job-invitation-reply/reports/YYYY-MM-DD-step-7-unit-test-and-db-verification.md`
 
 ## 8. Manual Endpoint Testing with curl (MANDATORY — agent executes)
 
-- [ ] 8.1 Submit the reference Baxter invitation (`intent: interested`) via curl, poll to `completed`, verify parsed fields and English draft addressed to "Alexis"
-- [ ] 8.2 Repeat with `request_more_info` and `decline`
-- [ ] 8.3 Error cases: blank text, >5000 chars, bad intent, no auth, another candidate's `jobId`
-- [ ] 8.4 Delete created `JobInvitation` rows to restore DB state; document commands and responses in the report
+- [x] 8.1 Submit the reference Baxter invitation (`intent: interested`) via curl, poll to `completed`, verify parsed fields and English draft addressed to "Alexis" — **run with a scripted Ollama stub (Ollama is unreachable from the sandbox); real-model behavior is NOT verified, see the step 8 report**
+- [x] 8.2 Repeat with `request_more_info` and `decline`
+- [x] 8.3 Error cases: blank text, >5000 chars, bad intent, no auth, another candidate's `jobId`
+- [x] 8.4 Delete created `JobInvitation` rows to restore DB state; document commands and responses in the report
 
 ## 9. E2E Testing with Playwright MCP (MANDATORY — agent executes)
 
-- [ ] 9.1 Paste the Baxter invitation in the page, submit, observe progress, verify summary/draft/Copy/"not sent" notice
-- [ ] 9.2 Verify failure + retry path and disabled-submit states
-- [ ] 9.3 Record results in the report
+_Run with the project's `@playwright/test` runner (Playwright MCP not available in the session) and the same LLM stub — see the step 9 report._
+
+- [x] 9.1 Paste the Baxter invitation in the page, submit, observe progress, verify summary/draft/Copy/"not sent" notice
+- [x] 9.2 Verify failure + retry path and disabled-submit states
+- [x] 9.3 Record results in the report
 
 ## 10. Update Technical Documentation (MANDATORY)
 
@@ -66,6 +68,6 @@
 
 ## 11. Close Out
 
-- [ ] 11.1 Push branch and open PR (`main` is protected)
+- [ ] 11.1 Push branch and open PR (`main` is protected) — branch pushed; PR intentionally not opened until the owner asks
 - [ ] 11.2 Confirm CI checks pass and PR is mergeable
 - [ ] 11.3 Merge once the project owner confirms; then propose `openspec archive respond-to-job-invitation`
