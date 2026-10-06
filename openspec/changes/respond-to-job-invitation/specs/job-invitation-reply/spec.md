@@ -43,14 +43,14 @@ The system SHALL expose `GET /invitations/reply-drafts/{jobId}` returning `statu
 - **THEN** the system responds `404`
 
 ### Requirement: Structured Invitation Extraction
-The agent SHALL extract from the invitation text a structured object validated by a Pydantic schema with: `recruiterName`, `recruiterTitle`, `company`, `roleTitle`, `location`, `language`, and `callToAction`. Fields absent from the text SHALL be `null` rather than invented. Marketing taglines in the recruiter's signature SHALL NOT be treated as the recruiter's title or company. Free-form unvalidated output SHALL NOT be accepted; on validation failure the system SHALL retry once with a context-budget-capped prompt before failing the job.
+The agent SHALL extract from the invitation text a structured object, validated by a Pydantic schema, with `recruiterName`, `recruiterTitle`, `company`, `roleTitle`, `location`, `language`, and `callToAction`. Fields absent from the text SHALL be `null` rather than invented, and free-form unvalidated output SHALL NOT be accepted. On validation failure the system SHALL retry once with a context-budget-capped prompt before failing the job.
 
 #### Scenario: Reference Baxter invitation is parsed
 - **WHEN** the reference invitation from Alexis Aguiñaga is submitted
 - **THEN** the extraction yields `recruiterName: "Alexis Aguiñaga"`, `recruiterTitle: "Senior Talent Acquisition Consultant"`, `company: "Baxter International Inc."`, `roleTitle: "Business Intelligence Specialist"`, `location: "Bogotá, D.C."`, `language: "en"`
 
 #### Scenario: Signature tagline is ignored
-- **WHEN** the signature contains "This is where you can do your best work while helping save and sustain lives"
+- **WHEN** the recruiter's signature contains a marketing tagline, such as "This is where you can do your best work while helping save and sustain lives"
 - **THEN** that tagline appears in none of the extracted fields
 
 #### Scenario: Missing information stays null
