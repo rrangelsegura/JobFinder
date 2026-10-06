@@ -23,6 +23,8 @@ agent_roles_defined:
     description: "Agente enfocado en la generacion de un plan de accion basado en las brechas identificada y las fortalezas del candidato, considerando habilidades, experiencia, educacion, etc."
   - id: "cv_tailoring_engine"
     description: "Agente enfocado en la generacion de un curriculum vitae optimizado para la descripcion de empleo, considerando habilidades, experiencia, educacion, etc."
+  - id: "invitation_responder"
+    description: "Agente enfocado en responder invitaciones de reclutadores a una vacante: lee el texto de la invitacion (empresa, rol, localidad, reclutador, idioma), lo parsea en formato JSON validado y redacta un borrador de respuesta en el idioma de la invitacion, con la intencion elegida por el candidato (interesado, pedir mas informacion o declinar), basado unicamente en hechos del perfil del candidato y de la invitacion. Nunca envia la respuesta."
 
 system_capability_domains:
   - domain: "candidate_profile_management"

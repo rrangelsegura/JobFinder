@@ -44,6 +44,12 @@ export function WorkspaceLayout() {
         >
           Analysis Results
         </NavLink>
+        <NavLink
+          to="/workspace/invitations"
+          className={({ isActive }) => NAV_LINK_CLASSES(isActive)}
+        >
+          Invitation Replies
+        </NavLink>
         {DISABLED_SECTIONS.map((label) => (
           <DisabledNavItem key={label} label={label} />
         ))}

@@ -557,6 +557,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UploadErrorResponse"
+  /invitations/reply-drafts:
+    post:
+      summary: Request a draft reply to a job invitation
+      description: |
+        Accepts the text of a recruiter's vacancy invitation and enqueues an
+        async job that (1) extracts structured invitation data and (2) drafts
+        a reply grounded in the candidate's stored profile, using the local
+        LLM. Poll `GET /invitations/reply-drafts/{jobId}` for the result.
+        Implements `respond-to-job-invitation`'s `job-invitation-reply`
+        capability. The draft is advisory — it is never sent anywhere.
+        Requires an authenticated session; `candidateId` is derived
+        server-side and never accepted from the request body.
+      tags:
+        - Invitations
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplyDraftRequest"
+      responses:
+        "202":
+          description: Accepted; the draft is being generated asynchronously.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplyDraftAcceptedResponse"
+        "400":
+          description: |
+            `invitationText` missing, blank, not a string, or longer than
+            5000 characters; or `intent` not one of the allowed values.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadErrorResponse"
+        "401":
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+  /invitations/reply-drafts/{jobId}:
+    get:
+      summary: Get reply-draft job status
+      description: |
+        Poll for the status of a job enqueued by
+        `POST /invitations/reply-drafts`. A job owned by another candidate is
+        reported as `404`, indistinguishable from a missing one. A failed job
+        returns a curated user-facing message, never the raw internal reason.
+      tags:
+        - Invitations
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: |
+            Job found. `data.status` is `processing` (with `data.phase`),
+            `completed` (with `data.invitation`, `data.draftReply` and
+            `data.durationMs`), or `failed` (with `data.error` and
+            `data.durationMs`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplyDraftStatusResponse"
+        "401":
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: No job with that id exists for the authenticated candidate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadErrorResponse"
   # Additional paths for OCR, coaching, etc., can be added later
 components:
   securitySchemes:
@@ -976,6 +1060,103 @@ components:
           type: string
         details:
           type: string
+    ReplyDraftRequest:
+      type: object
+      required:
+        - invitationText
+      properties:
+        invitationText:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: The recruiter's message, trimmed server-side.
+        intent:
+          type: string
+          enum: [interested, request_more_info, decline]
+          default: interested
+    ReplyDraftAcceptedResponse:
+      type: object
+      description: Standard response envelope per docs/backend-standards.md.
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            invitationId:
+              type: integer
+            jobId:
+              type: string
+            status:
+              type: string
+              enum: [processing]
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
+    ParsedInvitation:
+      type: object
+      description: Facts extracted from the invitation. Absent facts are null, never invented.
+      properties:
+        recruiterName:
+          type: string
+          nullable: true
+        recruiterTitle:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        roleTitle:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        language:
+          type: string
+          description: ISO language code of the invitation (e.g. en, es). The draft mirrors it.
+        callToAction:
+          type: string
+          nullable: true
+    ReplyDraftStatusResponse:
+      type: object
+      description: Standard response envelope per docs/backend-standards.md.
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [processing, completed, failed]
+            phase:
+              type: string
+              enum: [queued, parsing, drafting, saving]
+              description: Present only when status is "processing".
+            invitation:
+              description: Present only when status is "completed".
+              $ref: "#/components/schemas/ParsedInvitation"
+            draftReply:
+              type: string
+              description: Present only when status is "completed". Plain text; never sent automatically.
+            error:
+              type: string
+              description: Present only when status is "failed". A curated user-facing message.
+            durationMs:
+              type: integer
+              description: Present when status is "completed" or "failed".
+        agent_trace_id:
+          type: string
+          format: uuid
+        model_used:
+          type: string
+          nullable: true
   responses:
     BadRequest:
       description: Bad request

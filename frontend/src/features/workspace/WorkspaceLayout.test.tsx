@@ -35,6 +35,15 @@ describe("WorkspaceLayout", () => {
     } as unknown as ReturnType<typeof useLogout>)
   })
 
+  // respond-to-job-invitation: a live section, not a disabled placeholder
+  it("links to the Invitation Replies page", () => {
+    renderLayout()
+
+    expect(
+      screen.getByRole("link", { name: "Invitation Replies" }),
+    ).toHaveAttribute("href", "/workspace/invitations")
+  })
+
   it("shows all four navigation sections", () => {
     renderLayout()
 

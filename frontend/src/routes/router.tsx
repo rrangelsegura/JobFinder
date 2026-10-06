@@ -5,6 +5,7 @@ import { VerifyEmailPage } from "@/features/auth/VerifyEmailPage"
 import { WorkspaceLayout } from "@/features/workspace/WorkspaceLayout"
 import { UploadPage } from "@/features/upload/UploadPage"
 import { AnalysisResultsPage } from "@/features/analysis/AnalysisResultsPage"
+import { InvitationRepliesPage } from "@/features/invitations/InvitationRepliesPage"
 import { ProtectedRoute } from "./ProtectedRoute"
 
 export const router = createBrowserRouter([
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="upload" replace /> },
           { path: "upload", element: <UploadPage /> },
           { path: "analysis", element: <AnalysisResultsPage /> },
+          { path: "invitations", element: <InvitationRepliesPage /> },
         ],
       },
     ],

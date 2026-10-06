@@ -32,7 +32,7 @@ Represents a job candidate who can apply for positions within the system.
 - passwordHash: Bcrypt hash of the candidate's password (cost factor 12, max 255 characters). Never the plain-text password.
 - emailVerifiedAt: Timestamp when the candidate proved ownership of `email` by clicking their one-time verification link (optional, null until verified). `requireAuth` rejects every protected route with `403` while this is unset, regardless of session validity — see `candidate-authentication`'s "Session-Based Route Protection" requirement.
 - **Validation Rules**: First name and last name are required, 2-100 characters, letters only; Email is required, must be unique; Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX; Address is optional, max 100 characters; passwordHash is required, set at registration (`POST /auth/register`), never accepted or returned directly by any API response; emailVerifiedAt is optional, set only by `POST /auth/verify-email` consuming a valid one-time token.
-- **Relationships**: educations (1:N), workExperiences (1:N), resumes (1:N), applications (1:N), skills (1:N), languages (1:N), certifications (1:N).
+- **Relationships**: educations (1:N), workExperiences (1:N), resumes (1:N), applications (1:N), skills (1:N), languages (1:N), certifications (1:N), jobInvitations (1:N).
 
 **2. Education**
 Represents educational background information for candidates.
@@ -254,6 +254,23 @@ Represents individual interview sessions conducted as part of an application.
 - promptTemplate: Text (The actual prompt used)
 - version: String (e.g., v1.0.2)
 - isActive: Boolean
+
+### 3.3 Invitation Replies
+**JobInvitation** (`respond-to-job-invitation`)
+A recruiter's vacancy invitation and the reply draft generated for it. Drafts are advisory: nothing is ever sent.
+- id: Integer (PK, auto-increment)
+- candidateId: Integer (FK $\rightarrow$ Candidate, `ON DELETE CASCADE`)
+- source: Enum (`manual_text`, `linkedin_message`, `linkedin_notification`; default `manual_text`). Only `manual_text` is produced today; the LinkedIn values are reserved for the planned daily monitor.
+- externalId: String (optional, max 255). The source's own id for the message, used to de-duplicate automated sources. NULL for manual submissions.
+- rawText: Text (the invitation exactly as submitted, trimmed)
+- intent: Enum (`interested`, `request_more_info`, `decline`; default `interested`)
+- status: Enum (`processing`, `completed`, `failed`; default `processing`)
+- recruiterName, recruiterTitle, company, roleTitle, location, callToAction: String (optional; null when the invitation does not state them)
+- language: String (optional, max 10; ISO code of the invitation, which the draft mirrors)
+- draftReply: Text (optional; set when `status` is `completed`)
+- createdAt: DateTime
+- **Constraints**: unique on (`candidateId`, `source`, `externalId`). Postgres treats NULLs as distinct, so manual submissions may repeat while an automated source cannot insert the same message twice.
+- **Relationships**: candidate (N:1).
 
 ---
 

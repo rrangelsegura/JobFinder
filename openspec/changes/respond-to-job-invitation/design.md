@@ -20,7 +20,7 @@
 
 **1. Async job + polling, same as CV extraction.** Local-LLM calls take tens of seconds; a synchronous request would hit gateway timeouts. Reusing the queue and status vocabulary keeps the frontend polling code and operations model uniform.
 
-**2. One LLM call for parsing, one for drafting (two focused prompts), not one combined prompt.** With an 8192-token ceiling and a small local model, a combined "extract + write" prompt risks truncated JSON (the failure mode documented in `cv-extraction-retry-hardening`). Step 1 returns strict JSON validated by Pydantic (`recruiter_name`, `recruiter_title`, `company`, `role_title`, `location`, `language`, `candidate_name_in_greeting`, `call_to_action`); step 2 produces plain-text prose for the reply, so no JSON validation risk on the long output. Step 1 keeps the existing one-retry-with-capped-error-summary budget; step 2 retries once on empty/too-short output.
+**2. One LLM call for parsing, one for drafting (two focused prompts), not one combined prompt.** With an 8192-token ceiling and a small local model, a combined "extract + write" prompt risks truncated JSON (the failure mode documented in `cv-extraction-retry-hardening`). Step 1 returns strict JSON validated by Pydantic (`recruiter_name`, `recruiter_title`, `company`, `role_title`, `location`, `language`, `call_to_action`); step 2 produces plain-text prose for the reply, so no JSON validation risk on the long output. Step 1 keeps the existing one-retry-with-capped-error-summary budget; step 2 retries once on empty/too-short output.
 
 **3. Grounding via a compact candidate summary, not the full profile.** The Node layer sends a bounded summary (full name, current/most recent title and employer, top skills, total years if derivable) built from Prisma data. The drafting prompt instructs the model to mention only facts in that summary or in the invitation, and to reference the invitation's own claims (e.g. "your note about my data engineering background") rather than restating unverified ones.
 
@@ -33,6 +33,36 @@
 **7. Draft is advisory.** The API has no send action; this protects against LLM mistakes reaching a recruiter and keeps the later LinkedIn "send" decision as its own, explicitly-specced change.
 
 **8. Input limits.** `invitationText` is trimmed, required, max 5,000 characters (invitations are short; also protects the context budget). Over the limit → `400`.
+
+**9. Two REST endpoints on the agent, not one.** The Python core exposes `POST /invitation-responder/extract` and `POST /invitation-responder/draft`; the Node worker calls them in sequence. This is what lets the status endpoint report the real phases (`parsing`, `drafting`) instead of one opaque call, mirroring how `cvExtractionProcessor` reports `extracting`/`saving`. The agent stays stateless and never touches Postgres.
+
+**10. Failure messages are curated at the API edge.** The worker's raw failure reason (agent error text, hostnames) is mapped to a fixed user-facing message by `mapInvitationErrorToUserMessage` before it reaches the client. Unlike CV extraction failures, every invitation failure is safe to retry, so the copy says so.
+
+## Interaction Flow
+
+```mermaid
+sequenceDiagram
+    participant UI as Frontend
+    participant API as Node API
+    participant Q as BullMQ worker
+    participant AG as Python agent
+    participant LLM as Ollama
+    UI->>API: POST /invitations/reply-drafts {invitationText, intent}
+    API->>API: validate, create JobInvitation (processing)
+    API-->>UI: 202 {jobId}
+    Q->>AG: POST /invitation-responder/extract   (phase: parsing)
+    AG->>LLM: extraction prompt (JSON mode)
+    LLM-->>AG: JSON, validated by Pydantic (one retry)
+    AG-->>Q: InvitationExtraction
+    Q->>Q: build bounded candidate summary from Postgres
+    Q->>AG: POST /invitation-responder/draft    (phase: drafting)
+    AG->>LLM: drafting prompt (plain text)
+    LLM-->>AG: reply text (one retry if empty)
+    AG-->>Q: draft_reply
+    Q->>Q: save fields + draft, status completed (phase: saving)
+    UI->>API: GET /invitations/reply-drafts/{jobId} (polling)
+    API-->>UI: completed {invitation, draftReply}
+```
 
 ## Risks / Trade-offs
 

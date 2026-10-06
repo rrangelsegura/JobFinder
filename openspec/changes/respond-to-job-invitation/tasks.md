@@ -1,43 +1,43 @@
 ## 0. Setup: Create Feature Branch (MANDATORY - FIRST STEP)
 
-- [ ] 0.1 Create feature branch `feature/respond-to-job-invitation` from `main` (or use the branch assigned to the session, if any)
-- [ ] 0.2 Verify branch creation and current branch status
+- [x] 0.1 Create feature branch `feature/respond-to-job-invitation` from `main` (or use the branch assigned to the session, if any) — used the session's assigned branch `claude/keen-cannon-ek4yzd`
+- [x] 0.2 Verify branch creation and current branch status
 
 ## 1. Data Model
 
-- [ ] 1.1 Add `InvitationSource` enum and `JobInvitation` model to `backend/prisma/schema.prisma` with unique `(candidateId, source, externalId)`
-- [ ] 1.2 Generate and review the Prisma migration (additive only)
+- [x] 1.1 Add `InvitationSource` enum and `JobInvitation` model to `backend/prisma/schema.prisma` with unique `(candidateId, source, externalId)`
+- [x] 1.2 Generate and review the Prisma migration (additive only)
 
 ## 2. Python Agent: `invitation_responder`
 
-- [ ] 2.1 Create `backend/agents/invitation_responder/` (`schemas.py`, `service.py`, `router.py`) and register it in `backend/agents/main.py`
-- [ ] 2.2 Pydantic schemas: `InvitationExtraction`, `CandidateSummary`, `ReplyDraftRequest`/`Response`
-- [ ] 2.3 Extraction prompt + one-retry with capped error summary; ignore signature taglines
-- [ ] 2.4 Drafting prompt (grounding rule, intent shaping, language mirroring); retry once on empty/too-short output
+- [x] 2.1 Create `backend/agents/invitation_responder/` (`schemas.py`, `service.py`, `router.py`) and register it in `backend/agents/main.py`
+- [x] 2.2 Pydantic schemas: `InvitationExtraction`, `CandidateSummary`, `ReplyDraftRequest`/`Response`
+- [x] 2.3 Extraction prompt + one-retry with capped error summary; ignore signature taglines
+- [x] 2.4 Drafting prompt (grounding rule, intent shaping, language mirroring); retry once on empty/too-short output
 
 ## 3. Node API
 
-- [ ] 3.1 `POST /invitations/reply-drafts` with validation (text 1–5000, intent enum) and auth
-- [ ] 3.2 `GET /invitations/reply-drafts/{jobId}` with phases `queued|parsing|drafting|saving`, `durationMs`, ownership check
-- [ ] 3.3 BullMQ worker: build bounded candidate summary, call agent, persist `JobInvitation`
+- [x] 3.1 `POST /invitations/reply-drafts` with validation (text 1–5000, intent enum) and auth
+- [x] 3.2 `GET /invitations/reply-drafts/{jobId}` with phases `queued|parsing|drafting|saving`, `durationMs`, ownership check
+- [x] 3.3 BullMQ worker: build bounded candidate summary, call agent, persist `JobInvitation`
 
 ## 4. Frontend
 
-- [ ] 4.1 "Invitation Replies" page: textarea, intent selector, limit handling
-- [ ] 4.2 Polling, phase messages, parsed summary, read-only draft, Copy, retry, "not sent" notice
-- [ ] 4.3 Navigation entry and API client
+- [x] 4.1 "Invitation Replies" page: textarea, intent selector, limit handling
+- [x] 4.2 Polling, phase messages, parsed summary, read-only draft, Copy, retry, "not sent" notice
+- [x] 4.3 Navigation entry and API client
 
 ## 5. Tests (TDD — write failing tests first)
 
-- [ ] 5.1 Add the reference Baxter invitation as a shared fixture (verbatim text, `ñ`/`á` preserved)
-- [ ] 5.2 pytest: extraction schema validation, Baxter expected fields, tagline ignored, null for missing fields, retry once then fail (LLM mocked)
-- [ ] 5.3 pytest: drafting prompt contains grounding/intent/language rules; no ungrounded employer/skill; Spanish input → Spanish instruction
-- [ ] 5.4 Jest: POST validation (400/401/202), GET statuses and phases, cross-candidate 404, persistence, uniqueness rule
-- [ ] 5.5 Vitest: page states (disabled submit, progress, result, copy, failure/retry, not-sent notice)
+- [x] 5.1 Add the reference Baxter invitation as a shared fixture (verbatim text, `ñ`/`á` preserved)
+- [x] 5.2 pytest: extraction schema validation, Baxter expected fields, tagline ignored, null for missing fields, retry once then fail (LLM mocked)
+- [x] 5.3 pytest: drafting prompt contains grounding/intent/language rules; no ungrounded employer/skill; Spanish input → Spanish instruction
+- [x] 5.4 Jest: POST validation (400/401/202), GET statuses and phases, cross-candidate 404, persistence, uniqueness rule
+- [x] 5.5 Vitest: page states (disabled submit, progress, result, copy, failure/retry, not-sent notice)
 
 ## 6. Review and Update Existing Unit Tests (MANDATORY)
 
-- [ ] 6.1 Confirm no existing CV-upload/extraction tests are affected; update any shared fixtures or route registries touched
+- [x] 6.1 Confirm no existing CV-upload/extraction tests are affected; update any shared fixtures or route registries touched
 
 ## 7. Run Unit Tests and Verify Database State (MANDATORY)
 
@@ -59,10 +59,10 @@
 
 ## 10. Update Technical Documentation (MANDATORY)
 
-- [ ] 10.1 `docs/api-spec.yml`: both endpoints and schemas
-- [ ] 10.2 `docs/data-model.md`: `JobInvitation` and `InvitationSource`
-- [ ] 10.3 `openspec/config.yaml`: add agent role `invitation_responder`
-- [ ] 10.4 Follow `docs/documentation-standards.md`
+- [x] 10.1 `docs/api-spec.yml`: both endpoints and schemas
+- [x] 10.2 `docs/data-model.md`: `JobInvitation` and `InvitationSource`
+- [x] 10.3 `openspec/config.yaml`: add agent role `invitation_responder`
+- [x] 10.4 Follow `docs/documentation-standards.md`
 
 ## 11. Close Out
 
